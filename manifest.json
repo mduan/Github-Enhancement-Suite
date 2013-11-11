@@ -1,0 +1,32 @@
+{
+  "name": "Github Enhancement Suite",
+  "version": "0.0.1",
+  "description": "Improvements to diff viewer in Github",
+  "manifest_version": 2,
+  "background": {
+    "matches": [
+      "https://github.com/*"
+    ],
+    "run_at": "document_end"
+  },
+  "content_scripts": [{
+    "css": ["css/styles.css"],
+    "matches": [
+      "https://github.com/*/pull/*",
+      "https://github.com/*/commit/*",
+      "https://github.com/*/compare/*"
+    ],
+    "js": [
+      "js/ext/jquery-2.0.3.js",
+      "js/ext/react-0.6.0a.js",
+      "js/build/script.js"
+    ]
+  }],
+  "permissions": [
+    "storage",
+    "tabs",
+    "webNavigation",
+    "https://github.com/*",
+    "https://raw.github.com/*"
+  ]
+}
