@@ -19,6 +19,9 @@
     "js": [
       "js/ext/jquery-2.0.3.js",
       "js/ext/react-0.6.0a.js",
+      "js/build/init.js",
+      "js/build/utils.js",
+      "js/build/parser.js",
       "js/build/script.js"
     ]
   }],
