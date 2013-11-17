@@ -112,14 +112,27 @@ RowGroups.prototype.append = function(rowGroup) {
   this.lastRowGroup = rowGroup;
 };
 
-// TODO(mack): implement this
 RowGroups.prototype.insertAfter = function(prevRowGroup, rowGroup) {
   if (!prevRowGroup) {
     // Add to head of linked list
+    var prevFirst = this.firstRowGroup;
+    rowGroup.next = prevFirst;
+    prevFirst.prev = rowGroup;
+    this.firstRowGroup = rowGroup;
   } else if (prevRowGroup === this.lastRowGroup) {
     // Add to tail of linked list
+    var prevLast = this.lastRowGroup;
+    prevLast.next = rowGroup;
+    rowGroup.prev = prevLast;
+    rowGroup.next = null;
+    this.lastRowGroup = rowGroup;
   } else {
     // Add to middle of linked list
+    var nextRowGroup = prevRowGroup.next;
+    prevRowGroup.next = rowGroup;
+    nextRowGroup.prev = rowGroup;
+    rowGroup.prev = prevRowGroup;
+    rowGroup.next = nextRowGroup;
   }
 };
 

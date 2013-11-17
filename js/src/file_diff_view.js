@@ -61,14 +61,16 @@ function getMissingRangeInfo(prevRowGroup, nextRowGroup, totalLines) {
 function getShowRowGroup(fileLines, showRange) {
   var rowGroup = new UnchangedRowGroup();
   for (var i = 0; i < showRange.length; ++i) {
-    var fileLine = fileLines[showRange.insertedIdx + i];
+    var currDeletedIdx = showRange.deletedIdx + i;
+    var currInsertedIdx = showRange.insertedIdx + i;
+    var fileLine = fileLines[currInsertedIdx];
     fileLine = $('<div/>').text(' ' + fileLine).html();
     fileLine = fileLine
       .replace(/ /g, '&nbsp;')
       .replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;');
 
     var row = new UnchangedRow({
-      lineNum: new LineNum({ idx: showRange.deletedIdx }),
+      lineNum: new LineNum({ idx: currDeletedIdx }),
       text: fileLine,
       commentUrl: '',
       position: '',
@@ -76,7 +78,7 @@ function getShowRowGroup(fileLines, showRange) {
     rowGroup.addDeletedRow(row);
 
     var row = new UnchangedRow({
-      lineNum: new LineNum({ idx: showRange.insertedIdx }),
+      lineNum: new LineNum({ idx: currInsertedIdx }),
       text: fileLine,
       commentUrl: '',
       position: '',
@@ -89,12 +91,7 @@ function getShowRowGroup(fileLines, showRange) {
 var FileDiffView = React.createClass({
 
   getInitialState: function() {
-    // Props initially has member fileDiff that is a FileDiff object
-    var fileDiff = this.props.fileDiff;
-    return {
-      rawUrl: fileDiff.rawUrl,
-      fileDiff: fileDiff,
-    };
+    return Object.create(this.props);
   },
 
   fetchFile: function() {
@@ -103,7 +100,7 @@ var FileDiffView = React.createClass({
     }
 
     var self = this;
-    this.state.fileDataPromise = $.get(this.state.rawUrl).then(function(data) {
+    this.state.fileDataPromise = $.get(this.state.fileDiff.rawUrl).then(function(data) {
       // TODO(mack): Create class in Parser namespace to store this.
       var fileLines = data.split(/\r?\n/);
       self.totalLines = fileLines.length;
@@ -114,7 +111,8 @@ var FileDiffView = React.createClass({
 
   clickShowLines: function(prevRowGroup, nextRowGroup, evt, currTargetId) {
     var numLines = this.state.numLinesToShow;
-    var $target = $(document.getElementById(currTargetId));
+    // TODO(mack): See if there's a less hacky way to get the real target.
+    var $target = $('[data-reactid="' + currTargetId + '"]');
     this.fetchFile().then(function(fileLines) {
       var rangeInfo = getMissingRangeInfo(prevRowGroup, nextRowGroup, fileLines.length);
 
@@ -133,15 +131,15 @@ var FileDiffView = React.createClass({
       } else {
         assert($target.hasClass('showBelow'));
         var showRange = {
-          new: rangeInfo.insertedIdx + rangeInfo.length - numLines,
-          old: rangeInfo.deletedIdx + rangeInfo.length - numLines,
+          deletedIdx: rangeInfo.deletedIdx + rangeInfo.length - numLines,
+          insertedIdx: rangeInfo.insertedIdx + rangeInfo.length - numLines,
           length: numLines,
         };
       }
 
       var rowGroup = getShowRowGroup(fileLines, showRange);
-      this.fileDiff.insertAfter(prevRowGroup, rowGroup);
-      this.setState({ rows: this.state.fileDiff })
+      this.state.fileDiff.getRowGroups().insertAfter(prevRowGroup, rowGroup);
+      this.setState({ fileDiff: this.state.fileDiff })
 
     }.bind(this));
 
@@ -245,27 +243,29 @@ var FileDiffView = React.createClass({
   },
 
   componentWillUpdate: function(nextProps, nextState) {
-    this.state.rows.forEach(function(row) {
-      if (row.type !== 'comments') {
-        return;
-      }
+    //this.state.rows.forEach(function(row) {
+    //  if (row.type !== 'comments') {
+    //    return;
+    //  }
 
-      try {
-        $(row.newView.getDOMNode());
-        row.view = row.newView;
-      } catch (ex) {
-        debugger;
-      }
-      var $row = $(row.view.getDOMNode());
+    //  // The code below might be the key to getting comments working during
+    //  // update()
+    //  try {
+    //    $(row.newView.getDOMNode());
+    //    row.view = row.newView;
+    //  } catch (ex) {
+    //    debugger;
+    //  }
+    //  var $row = $(row.view.getDOMNode());
 
-      var $countElement = $row.find('.comment-count').clone();
-      $countElement.find('*').addBack().removeAttr('data-reactid');
-      row.cells[0].$countElement = $countElement;
+    //  var $countElement = $row.find('.comment-count').clone();
+    //  $countElement.find('*').addBack().removeAttr('data-reactid');
+    //  row.cells[0].$countElement = $countElement;
 
-      var $commentsElement = $row.find('.line-comments').clone();
-      $commentsElement.find('*').addBack().removeAttr('data-reactid');
-      row.cells[0].$commentsElement = $commentsElement;
-    });
+    //  var $commentsElement = $row.find('.line-comments').clone();
+    //  $commentsElement.find('*').addBack().removeAttr('data-reactid');
+    //  row.cells[0].$commentsElement = $commentsElement;
+    //});
   },
 
   render: function() {
