@@ -22,6 +22,7 @@
       "js/build/init.js",
       "js/build/utils.js",
       "js/build/parser.js",
+      "js/build/file_diff_view.js",
       "js/build/script.js"
     ]
   }],

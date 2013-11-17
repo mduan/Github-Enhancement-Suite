@@ -1,62 +1,17 @@
 (function() {
 
-var Parser = Globals.Parser = {};
-
 var assert = Globals.Utils.assert;
+var inherit = Globals.Utils.inherit;
 
 /**
  * Class types below here
  */
 
-function FileDiff(params) {
-  this.rowGroups = [];
-  this.rawUrl = params.rawUrl;
-}
-FileDiff.prototype = {
-  addRowGroup: function(rowGroup) {
-    this.rowGroups.push(rowGroup);
-  },
-};
 
-function UnchangedRowGroup() {
-  this.rows = [];
-}
-UnchangedRowGroup.prototype = {
-  addRow: function(row) {
-    assert(row instanceof UnchangedRow);
-    this.rows.push(row);
-  },
-};
-
-function ChangedRowGroup() {
-  this.insertedRows = [];
-  this.deletedRows = [];
-}
-ChangedRowGroup.prototype = {
-  addInsertedRow: function(row) {
-    assert(row instanceof ChangedRow);
-    this.insertedRows.push(row);
-  },
-
-  addDeletedRow: function(row) {
-    assert(row instanceof ChangedRow);
-    this.deletedRows.push(row);
-  },
-};
-
-function UnchangedRow(params) {
-  this.text = params.text;
-  this.commentUrl = params.commentUrl;
-  this.position = params.position;
-  this.insertedLineNum = params.insertedLineNum;
-  this.deletedLineNum = params.deletedLineNum;
-}
-
-function ChangedRow(params) {
-  this.text = params.text;
-  this.commentUrl = params.commentUrl;
-  this.position = params.position;
-  this.lineNum = params.lineNum;
+function LineNum(params) {
+  this.idx = params.idx;
+  this.id = params.id;
+  this.dataNum = params.dataNum;
 }
 
 function Comment(params) {
@@ -64,29 +19,164 @@ function Comment(params) {
   this.$count = params.$count;
 }
 
-function LineNum(params) {
-  this.num = params.num;
-  this.id = params.id;
-  this.dataNum = params.dataNum;
+function Row(params) {
+  this.text = params.text;
+  this.commentUrl = params.commentUrl;
+  this.position = params.position;
+  this.lineNum = params.lineNum;
 }
 
-function parseLineNumberCell($cell) {
-  return new LineNum({
-    id: $cell.attr('id'),
-    dataNum: parseInt($cell.attr('data-line-number'), 10),
-    num: parseInt($cell.text(), 10),
-  });
+function InsertedRow() {
+  InsertedRow.parent.constructor.apply(this, arguments);
+}
+inherit(InsertedRow, Row, {});
+
+function DeletedRow() {
+  DeletedRow.parent.constructor.apply(this, arguments);
+}
+inherit(DeletedRow, Row, {});
+
+function UnchangedRow() {
+  UnchangedRow.parent.constructor.apply(this, arguments);
+}
+inherit(UnchangedRow, Row, {});
+
+function RowGroup() {
+  this.insertedRows = [];
+  this.deletedRows = [];
+  this.prev = null;
+  this.next = null;
+}
+RowGroup.prototype.addInsertedRow = function(row) {
+  this.validateRow(row);
+  this.insertedRows.push(row);
+};
+
+RowGroup.prototype.addDeletedRow = function(row) {
+  this.validateRow(row);
+  this.deletedRows.push(row);
+};
+
+RowGroup.prototype.getDeletedRange = function() {
+  if (!this.deletedRows.length) {
+    return [];
+  }
+  return [this.deletedRows.first().lineNum.idx,
+          this.deletedRows.last().lineNum.idx + 1];
+};
+
+RowGroup.prototype.getInsertedRange = function() {
+  if (!this.insertedRows.length) {
+    return [];
+  }
+  return [this.insertedRows.first().lineNum.idx,
+          this.insertedRows.last().lineNum.idx + 1];
+};
+
+function ChangedRowGroup() {
+  ChangedRowGroup.parent.constructor.apply(this, arguments);
+}
+inherit(ChangedRowGroup, RowGroup, {
+  validateRow: function(row) {
+    assert(row instanceof InsertedRow || row instanceof DeletedRow);
+  }
+});
+
+function UnchangedRowGroup() {
+  UnchangedRowGroup.parent.constructor.apply(this, arguments);
+}
+inherit(UnchangedRowGroup, RowGroup, {
+  validateRow: function(row) {
+    assert(row instanceof UnchangedRow);
+  }
+});
+
+function RowGroups() {
+  this.firstRowGroup = null;
+  this.lastRowGroup = null;
 }
 
-function parseCodeCell($cell) {
-  var $clone = $cell.clone();
-  $clone.find('.add-line-comment').remove();
-  return {
-    commentUrl: $cell.find('.add-line-comment').attr('data-remote'),
-    text: $clone.html()
-  };
+RowGroups.prototype.append = function(rowGroup) {
+  if (!this.firstRowGroup || !this.lastRowGroup) {
+    assert(!this.firstRowGroup && !this.lastRowGroup);
+    rowGroup.prev = null;
+    rowGroup.next = null;
+    this.firstRowGroup = rowGroup;
+    this.lastRowGroup = rowGroup;
+    return;
+  }
+
+  var prevRowGroup = this.lastRowGroup;
+  prevRowGroup.next = rowGroup;
+  rowGroup.prev = prevRowGroup;
+  this.lastRowGroup = rowGroup;
+};
+
+// TODO(mack): implement this
+RowGroups.prototype.insertAfter = function(prevRowGroup, rowGroup) {
+  if (!prevRowGroup) {
+    // Add to head of linked list
+  } else if (prevRowGroup === this.lastRowGroup) {
+    // Add to tail of linked list
+  } else {
+    // Add to middle of linked list
+  }
+};
+
+RowGroups.prototype.iterator = function() {
+  return new RowGroupIterator(this.firstRowGroup);
 }
 
+function FileDiff(params) {
+  this.rawUrl = params.rawUrl;
+  this.rowGroups = new RowGroups();
+}
+
+FileDiff.prototype.getRowGroups = function() {
+  return this.rowGroups;
+}
+
+function RowGroupIterator(firstRowGroup) {
+  assert(firstRowGroup);
+  this.prev = null;
+  this.curr = null;
+  this.firstRowGroup = firstRowGroup;
+}
+
+RowGroupIterator.prototype.next = function() {
+  if (!this.curr && !this.prev) {
+    // Before first element
+    this.curr = this.firstRowGroup;
+  } else if (!this.curr && this.prev) {
+    // After last element
+  } else {
+    this.prev = this.curr;
+    this.curr = this.curr.next;
+  }
+  return this.curr;
+};
+
+RowGroupIterator.prototype.prev = function() {
+  if (!this.curr && !this.prev) {
+    // Before first element
+  } else if (this.curr && !this.prev) {
+    // At first element
+    this.curr = this.prev;
+  } else {
+    this.curr = this.prev;
+    this.prev = this.prev.prev;
+  }
+  return this.curr;
+};
+
+RowGroupIterator.prototype.hasNext = function() {
+  return this.curr && this.curr.next ||
+    (!this.prev && !this.curr /* this implies we're before first element */);
+};
+
+RowGroupIterator.prototype.hasPrev = function() {
+  return this.prev;
+};
 
 /**
  * The output format will be something like the following:
@@ -96,7 +186,7 @@ function parseCodeCell($cell) {
  * Where deletions and insertions are lists of 0 or more lines
  *
  */
-Parser.parseFileDiff = function($fileDiff) {
+function parseFileDiff($fileDiff) {
 
   var $file = $fileDiff.closest('.file');
   var $viewFileButton = $file.find('.meta .actions .minibutton');
@@ -117,30 +207,32 @@ Parser.parseFileDiff = function($fileDiff) {
       // Ignore rows that serve as comments (i.e. the gray rows that describe
       // the diff)
       if ($row.hasClass('gc')) {
+        // Unset current RowGroup, so we start new group for next row.
+        currGroup = null;
         return;
       }
 
-      var rowType;
-      var currGroupType;
       if ($row.hasClass('gi')) {
-        rowType = 'inserted';
-        currGroupType = ChangedRowGroup;
+        var rowStr = 'inserted';
+        var rowType = InsertedRow;
+        var currGroupType = ChangedRowGroup;
       } else if ($row.hasClass('gd')) {
-        rowType = 'deleted';
-        currGroupType = ChangedRowGroup;
+        var rowStr = 'deleted';
+        var rowType = DeletedRow;
+        var currGroupType = ChangedRowGroup;
       } else {
-        rowType = 'unchanged';
-        currGroupType = UnchangedRowGroup;
+        var rowStr = 'unchanged';
+        var rowType = UnchangedRow;
+        var currGroupType = UnchangedRowGroup;
       }
 
       if (!currGroup || !(currGroup instanceof currGroupType)) {
         currGroup = new currGroupType();
-        fileDiff.addRowGroup(currGroup);
+        fileDiff.getRowGroups().append(currGroup);
       }
 
       // var row = { cells: [] };
       var $cells = $row.find('td');
-      var row;
       var codeData = parseCodeCell($cells.eq(2));
       var rowText = codeData.text;
       var commentUrl = codeData.commentUrl;
@@ -148,33 +240,25 @@ Parser.parseFileDiff = function($fileDiff) {
       var insertedLineNum = parseLineNumberCell($cells.eq(1));
       // Internal concept that is used to associate a comment with a row
       var rowPosition = $row.data('position');
-      if (rowType === 'deleted') {
-        row = new ChangedRow({
+      if (rowStr === 'deleted' || rowStr === 'unchanged') {
+        var row = new rowType({
           lineNum: deletedLineNum,
           text: rowText,
           commentUrl: commentUrl,
           position: rowPosition,
         });
         currGroup.addDeletedRow(row);
-      } else if (rowType === 'inserted') {
-        row = new ChangedRow({
+      }
+
+      if (rowStr === 'inserted' || rowStr === 'unchanged') {
+        var row = new rowType({
           lineNum: insertedLineNum,
           text: rowText,
           commentUrl: commentUrl,
           position: rowPosition,
         });
         currGroup.addInsertedRow(row);
-      } else {
-        row = new UnchangedRow({
-          deletedLineNum: deletedLineNum,
-          insertedLineNum: insertedLineNum,
-          text: rowText,
-          commentUrl: commentUrl,
-          position: rowPosition,
-        });
-        currGroup.addRow(row);
       }
-
     } else if ($row.hasClass('inline-comments')) {
       // TODO(mack): Consider creating JSX representing element rather than
       // cloning
@@ -193,5 +277,38 @@ Parser.parseFileDiff = function($fileDiff) {
   return fileDiff;
 }
 
+/**
+ * Helper functions below
+ */
+
+function parseLineNumberCell($cell) {
+  return new LineNum({
+    id: $cell.attr('id'),
+    dataNum: parseInt($cell.attr('data-line-number'), 10),
+    idx: parseInt($cell.text(), 10) - 1,
+  });
+}
+
+function parseCodeCell($cell) {
+  var $clone = $cell.clone();
+  $clone.find('.add-line-comment').remove();
+  return {
+    commentUrl: $cell.find('.add-line-comment').attr('data-remote'),
+    text: $clone.html()
+  };
+}
+
+Globals.Parser = {
+  FileDiff: FileDiff,
+  UnchangedRowGroup: UnchangedRowGroup,
+  ChangedRowGroup: ChangedRowGroup,
+  UnchangedRow: UnchangedRow,
+  DeletedRow: DeletedRow,
+  InsertedRow: InsertedRow,
+  Comment: Comment,
+  LineNum: LineNum,
+
+  parseFileDiff: parseFileDiff,
+};
 
 })();
