@@ -91,7 +91,12 @@ function getShowRowGroup(fileLines, showRange) {
 var FileDiffView = React.createClass({
 
   getInitialState: function() {
-    return Object.create(this.props);
+    return {
+      sideBySide: this.props.sideBySide,
+      wordWrap: this.props.wordWrap,
+      numLinesToShow: this.props.numLinesToShow,
+      fileDiff: this.props.fileDiff,
+    };
   },
 
   fetchFile: function() {
@@ -288,12 +293,7 @@ var FileDiffView = React.createClass({
     var prevRowGroup;
     while (iter.hasNext()) {
       var rowGroup = iter.next();
-
-      if (prevRowGroup) {
-        var prevEndIdx = prevRowGroup.getInsertedRange()[1];
-      } else {
-        var prevEndIdx = 0;
-      }
+      var prevEndIdx = prevRowGroup ? prevRowGroup.getInsertedRange()[1] : 0;
 
       var currBeginIdx = rowGroup.getInsertedRange()[0];
       if (!isNum(currBeginIdx)) {
@@ -329,7 +329,6 @@ var FileDiffView = React.createClass({
       }
 
       prevRowGroup = rowGroup;
-      rowGroup = null;
     }
     rowViews.push(this.inlineRenderShowLines(prevRowGroup, null));
 
@@ -437,246 +436,241 @@ var FileDiffView = React.createClass({
     return false;
   },
 
-  ///**
-  // * Following are side by side functions
-  // */
-  //sideBySideRender: function() {
-  //  // TODO(mack): Remove duplication this method has with inlineRender()
+  /**
+   * Following are side by side functions
+   */
+  sideBySideRender: function() {
+    // TODO(mack): Remove duplication this method has with inlineRender()
 
-  //  var rowViews = [];
-  //  var rowGroups = this.state.rowGroups;
-  //  var prevRowGroup;
-  //  for (var rowGroupIdx = 0; rowGroupIdx < rowGroups.length; ++rowGroupIdx) {
+    var rowViews = [];
+    var prevRowGroup;
+    var iter = this.state.fileDiff.getRowGroups().iterator();
+    while (iter.hasNext()) {
+      var rowGroup = iter.next();
+      var prevEndIdx = prevRowGroup ? prevRowGroup.getInsertedRange()[1] : 0;
 
-  //    var rowGroup = rowGroups[rowGroupIdx];
+      var currBeginIdx = rowGroup.getInsertedRange()[0];
+      if (!isNum(currBeginIdx)) {
+        currBeginIdx = prevEndIdx;
+      }
 
-  //    if (prevRowGroup) {
-  //      var prevEndIdx = prevRowGroup.getInsertedRange()[1];
-  //    }
+      if (isNum(prevEndIdx) && currBeginIdx > prevEndIdx) {
+        // We have a missing range
+        rowViews.push(this.sideBySideRenderShowLines(prevRowGroup, rowGroup));
+      } else {
+        assert(currBeginIdx === prevEndIdx);
+      }
 
-  //    var currBeginIdx = rowGroup.getInsertedRange()[0];
-  //    if (!isNum(currBeginIdx)) {
-  //      currBeginIdx = prevEndIdx;
-  //    }
+      var maxLength = Math.max(rowGroup.deletedRows.length, rowGroup.insertedRows.length);
+      for (var rowIdx = 0; rowIdx < maxLength; ++rowIdx) {
+        var deletedRow = rowGroup.deletedRows[rowIdx];
+        var insertedRow = rowGroup.insertedRows[rowIdx];
+        rowViews.push(this.sideBySideRenderCode(deletedRow, insertedRow));
 
-  //    if (isNum(prevEndIdx) && currBeginIdx > prevEndIdx) {
-  //      // We have a missing range
-  //      var rowView = this.sideBySideRenderShowLines(prevRowGroup, rowGroup);
-  //      rowViews.push(rowView);
-  //    } else {
-  //      assert(currBeginIdx === prevEndIdx);
-  //    }
+        if (deletedRow && deletedRow.comment ||
+            insertedRow && insertedRow.comment) {
+          rowViews.push(this.sideBySideRenderComment(deletedRow, insertedRow));
+        }
+      }
+      prevRowGroup = rowGroup;
+    }
+    rowViews.push(this.sideBySideRenderShowLines(prevRowGroup, null));
 
-  //    var maxLength = Math.max(rowGroup.deleteRows.length, rowGroup.insertedRows.length);
-  //    for (var rowIdx = 0; rowIdx < maxLength; ++rowIdx) {
-  //      var deletedRow = rowGroup.deletedRows[rowIdx];
-  //      var insertedRow = rowGroup.insertedRows[rowIdx];
-  //      var rowView = this.sideBySideRenderCode(deletedRow, insertedRow);
-  //      rowViews.push(rowView);
+    return (
+      <tbody>
+        {rowViews}
+      </tbody>
+    );
+  },
 
-  //      if (deletedRow && deletedRow.comment ||
-  //          insertedRow && insertedRow.comment) {
-  //        var rowView = this.sideBySideRenderComment(deletedRow, insertedRow);
-  //        rowViews.push(rowView);
-  //      }
-  //    }
+  sideBySideOnMouseDown: function(evt) {
+    var selection = window.getSelection();
+    if (selection.rangeCount > 0) {
+      selection.removeAllRanges();
+    }
 
-  //    prevRowGroup = rowGroup;
-  //  }
+    var $target = $(evt.target);
+    if (!$target.hasClass('diff-line-code')) {
+      $target = $target.closest('.diff-line-code');
+    }
 
-  //  return (
-  //    <tbody>
-  //      {rowViews}
-  //    </tbody>
-  //  );
-  //},
+    if (!$target.hasClass('diff-line-code')) {
+      $(evt.target).closest('.file-diff')
+        .removeClass('unselectableInsertion')
+        .removeClass('unselectableDeletion');
+      return;
+    }
 
-  //sideBySideOnMouseDown: function(evt) {
-  //  var selection = window.getSelection();
-  //  if (selection.rangeCount > 0) {
-  //    selection.removeAllRanges();
-  //  }
+    if ($target.index() === 1) {
+      $target.closest('.file-diff')
+        .addClass('unselectableInsertion')
+        .removeClass('unselectableDeletion');
+    } else /* index == 3 */ {
+      $target.closest('.file-diff')
+        .addClass('unselectableDeletion')
+        .removeClass('unselectableInsertion');
+    }
+  },
 
-  //  var $target = $(evt.target);
-  //  if (!$target.hasClass('diff-line-code')) {
-  //    $target = $target.closest('.diff-line-code');
-  //  }
+  sideBySideRenderShowLines: function(prevRowGroup, nextRowGroup) {
+    var rangeInfo = getMissingRangeInfo(prevRowGroup, nextRowGroup);
+    return (
+      <tr className={'showLines ' + rangeInfo.position}>
+        <td colSpan={4}>
+          {this.renderShowLinesLinks(prevRowGroup, nextRowGroup)}
+        </td>
+      </tr>
+    );
+  },
 
-  //  if (!$target.hasClass('diff-line-code')) {
-  //    $(evt.target).closest('.file-diff')
-  //      .removeClass('unselectableInsertion')
-  //      .removeClass('unselectableDeletion');
-  //    return;
-  //  }
+  sideBySideRenderComment: function(deletedRow, insertedRow) {
+    // For unchanged row, comments will always be rendered on inserted side.
+    if (deletedRow && deletedRow.comment && !(deletedRow instanceof UnchangedRow)) {
+      var deletedCommentViews = this.sideBySideRenderCommentColumn(deletedRow.comment);
+    } else {
+      var deletedCommentViews = this.sideBySideRenderCommentColumn(null);
+    }
 
-  //  if ($target.index() === 1) {
-  //    $target.closest('.file-diff')
-  //      .addClass('unselectableInsertion')
-  //      .removeClass('unselectableDeletion');
-  //  } else /* index == 3 */ {
-  //    $target.closest('.file-diff')
-  //      .addClass('unselectableDeletion')
-  //      .removeClass('unselectableInsertion');
-  //  }
-  //},
+    if (insertedRow && insertedRow.comment) {
+      var insertedCommentViews = this.sideBySideRenderCommentColumn(insertedRow.comment);
+    } else {
+      var insertedCommentViews = this.sideBySideRenderCommentColumn(null);
+    }
+    return (
+      <tr className="inline-comments show"
+          onMouseDown={this.sideBySideOnMouseDown}>
+        {deletedCommentViews.concat(insertedCommentViews)}
+      </tr>
+    );
+  },
 
-  //sideBySideRenderShowLines: function(prevRowGroup, nextRowGroup) {
-  //  var rangeInfo = getMissingRangeInfo(prevRowGroup, nextRowGroup);
-  //  return (
-  //    <tr className={'showLines ' + rangeInfo.position}>
-  //      <td colSpan={4}>
-  //        {this.renderShowLinesLinks(prevRowGroup, nextRowGroup)}
-  //      </td>
-  //    </tr>
-  //  );
-  //},
+  sideBySideRenderCommentColumn: function(comment) {
+    if (!comment) {
+      return [
+        <td className="empty-cell"></td>,
+        <td className="empty-line"></td>,
+      ];
+    } else {
+      return [
+        <td className="file-line-numbers comment-count" colSpan="1"
+            dangerouslySetInnerHTML={{ __html: row.$count.html() }}>
+        </td>,
+        <td className="js-line-comments line-comments" colSpan="1"
+            dangerouslySetInnerHTML={{ __html: row.$text.html() }}>
+        </td>,
+      ];
+    }
+  },
 
-  //sideBySideRenderComment: function(deletedRow, insertedRow) {
-  //  // For unchanged row, comments will always be rendered on inserted side.
-  //  if (deletedRow && deletedRow.comment && !(deletedRow instanceof UnchangedRow)) {
-  //    var deletedCommentViews = this.sideBySideRenderCommentColumn(deletedRow.comment);
-  //  } else {
-  //    var deletedCommentViews = this.sideBySideRenderCommentColumn(null);
-  //  }
+  sideBySideRenderCode: function(deletedRow, insertedRow) {
 
-  //  if (insertedRow && insertedRow.comment) {
-  //    var insertedCommentViews = this.sideBySideRenderCommentColumn(insertedRow.comment);
-  //  } else {
-  //    var insertedCommentViews = this.sideBySideRenderCommentColumn(null);
-  //  }
-  //  return (
-  //    <tr className="inline-comments show"
-  //        onMouseDown={this.sideBySideOnMouseDown}>
-  //      {deletedCommentViews.concat(insertedCommentViews)}
-  //    </tr>
-  //  );
-  //},
+    var deletedViews = this.sideBySideRenderCodeColumn(deletedRow);
+    var insertedViews = this.sideBySideRenderCodeColumn(insertedRow);
 
-  //sideBySideRenderCommentColumn: function(comment) {
-  //  if (!comment) {
-  //    return [
-  //      <td className="empty-cell"></td>,
-  //      <td className="empty-line"></td>,
-  //    ];
-  //  } else {
-  //    return [
-  //      <td className="file-line-numbers comment-count" colSpan="1"
-  //          dangerouslySetInnerHTML={{ __html: row.$count.html() }}>
-  //      </td>,
-  //      <td className="js-line-comments line-comments" colSpan="1"
-  //          dangerouslySetInnerHTML={{ __html: row.$text.html() }}>
-  //      </td>,
-  //    ];
-  //  }
-  //},
+    return (
+      <tr className="file-diff-line"
+          onMouseDown={this.sideBySideOnMouseDown}>
+        {deletedViews.concat(insertedViews)}
+      </tr>
+    );
+  },
 
-  //sideBySideRenderCode: function(deletedRow, insertedRow) {
+  sideBySideRenderCodeColumn: function(row) {
+    if (!row) {
+      var rowClass = 'empty-line';
+      var lineNum = {};
+      var text = '';
+      var position = '';
+      var commentIcon = '';
+    } else {
+      if (row instanceof InsertedRow) {
+        var rowClass = 'gi';
+      } else if (row instanceof DeletedRow) {
+        var rowClass = 'gd';
+      } else {
+        assert(row instanceof UnchangedRow);
+      }
+      var text = row.text;
+      var lineNum = row.lineNum;
+      var position = row.position;
+      var commentIcon = (
+        <b onClick={this.sideBySideClickAddComment}
+          className="add-line-comment octicon octicon-comment-add"
+          data-remote={row.commentUrl}></b>
+      );
+    }
 
-  //  var deletedViews = this.sideBySideRenderCodeColumn(deletedRow);
-  //  var insertedViews = this.sideBySideRenderCodeColumn(insertedRow);
+    var views = [
+      <td id={lineNum.id}
+          className={'diff-line-num linkable-line-number '
+            + (isNum(lineNum.idx) ? '' : 'empty-cell')}
+          data-line-number={lineNum.dataNum || ''}>
+        <span className="line-num-content">
+          {(lineNum.idx + 1) || ''}
+        </span>
+      </td>,
 
-  //  return (
-  //    <tr className="file-diff-line"
-  //        onMouseDown={this.sideBySideOnMouseDown}>
-  //      {deletedViews.concat(insertedViews)}
-  //    </tr>
-  //  );
-  //},
+      <td className={'diff-line-code ' + rowClass} data-position={position}>
+        {commentIcon}
+        <span dangerouslySetInnerHTML={{ __html: text }}>
+        </span>
+      </td>
+    ];
+    return views;
+  },
 
-  //sideBySideRenderCodeColumn: function(row) {
-  //  if (!row) {
-  //    var rowClass = 'empty-line';
-  //    var lineNum = {};
-  //    var text = '';
-  //    var commentIcon = '';
-  //  } else {
-  //    if (row instanceof InsertedRow) {
-  //      var rowClass = 'gi';
-  //    } else if (row instanceof DeletedRow) {
-  //      var rowClass = 'gd';
-  //    } else {
-  //      assert(row instanceof UnchangedRow);
-  //    }
-  //    var text = row.text;
-  //    var lineNum = row.lineNum;
-  //    var commentIcon = (
-  //      <b onClick={this.sideBySideClickAddComment}
-  //        className="add-line-comment octicon octicon-comment-add"
-  //        data-remote={row.commentUrl}></b>
-  //    );
-  //  }
+  sideBySideClickAddComment: function(evt) {
+    return false;
+    //$target = $(evt.target);
+    //window.setTimeout(function() {
+    //  var rows = this.state.rows;
 
-  //  var views = [
-  //    <td id={lineNum.id}
-  //        className={'diff-line-num linkable-line-number '
-  //          + (isNum(lineNum.idx) ? '' : 'empty-cell')}
-  //        data-line-number={lineNum.dataNum || ''}>
-  //      <span className="line-num-content">
-  //        {(lineNum.idx + 1) || ''}
-  //      </span>
-  //    </td>,
+    //  var $thisLine = $target.closest('.diff-line-code');
+    //  var thisRowIdx = $thisLine.data('row-idx');
+    //  var thisRow = rows[thisRowIdx];
 
-  //    <td className={'diff-line-code ' + rowClass} data-position={row.position}>
-  //      {commentIcon}
-  //      <span dangerouslySetInnerHTML={{ __html: text }}>
-  //      </span>
-  //    </td>
-  //  ];
-  //  return views;
-  //},
+    //  if (thisRow.type === 'lineInsertion') {
+    //    var $otherLine = $target.closest('.diff-line-code').prev().prev();
+    //  } else {
+    //    var $otherLine = $target.closest('.diff-line-code').next().next();
+    //  }
+    //  var otherRowIdx = $otherLine.data('row-idx');
+    //  var otherRow = rows[otherRowIdx];
 
-  //sideBySideClickAddComment: function(evt) {
-  //  return false;
-  //  //$target = $(evt.target);
-  //  //window.setTimeout(function() {
-  //  //  var rows = this.state.rows;
+    //  var $row = $target.closest('.file-diff-line').next();
 
-  //  //  var $thisLine = $target.closest('.diff-line-code');
-  //  //  var thisRowIdx = $thisLine.data('row-idx');
-  //  //  var thisRow = rows[thisRowIdx];
+    //  // TODO(mack): Handle side by side view where comment added to existing
+    //  // list of comments which could be on wrong side
+    //  var thisNextRow = rows[thisRowIdx + 1];
+    //  var otherNextRow = rows[otherRowIdx + 1];
+    //  if (thisNextRow && thisNextRow.type === 'comments') {
+    //    $row.removeClass('show-inline-comment-form');
+    //    var $element = thisNextRow.cells[0].$element;
+    //    $element.addClass('show-inline-comment-form');
+    //    $element.find('.js-comment-field').focus();
+    //    return;
+    //  } else if (otherNextRow && otherNextRow.type === 'comments') {
+    //    // TODO(mack): Give focus to textarea after re-render
+    //    $row.removeClass('show-inline-comment-form');
+    //    $row = $row.clone();
+    //    $row.addClass('show-inline-comment-form');
+    //    $row.find('.comment-holder').empty();
+    //    $row.find('input[name="position"]').val(thisRow.position)
+    //    if (thisRow.type === 'lineInsertion') {
+    //      $row.find('input[name="line"]').val(thisRow.cells[1].dataLineNum)
+    //    } else {
+    //      $row.find('input[name="line"]').val(thisRow.cells[0].dataLineNum)
+    //    }
+    //  }
 
-  //  //  if (thisRow.type === 'lineInsertion') {
-  //  //    var $otherLine = $target.closest('.diff-line-code').prev().prev();
-  //  //  } else {
-  //  //    var $otherLine = $target.closest('.diff-line-code').next().next();
-  //  //  }
-  //  //  var otherRowIdx = $otherLine.data('row-idx');
-  //  //  var otherRow = rows[otherRowIdx];
-
-  //  //  var $row = $target.closest('.file-diff-line').next();
-
-  //  //  // TODO(mack): Handle side by side view where comment added to existing
-  //  //  // list of comments which could be on wrong side
-  //  //  var thisNextRow = rows[thisRowIdx + 1];
-  //  //  var otherNextRow = rows[otherRowIdx + 1];
-  //  //  if (thisNextRow && thisNextRow.type === 'comments') {
-  //  //    $row.removeClass('show-inline-comment-form');
-  //  //    var $element = thisNextRow.cells[0].$element;
-  //  //    $element.addClass('show-inline-comment-form');
-  //  //    $element.find('.js-comment-field').focus();
-  //  //    return;
-  //  //  } else if (otherNextRow && otherNextRow.type === 'comments') {
-  //  //    // TODO(mack): Give focus to textarea after re-render
-  //  //    $row.removeClass('show-inline-comment-form');
-  //  //    $row = $row.clone();
-  //  //    $row.addClass('show-inline-comment-form');
-  //  //    $row.find('.comment-holder').empty();
-  //  //    $row.find('input[name="position"]').val(thisRow.position)
-  //  //    if (thisRow.type === 'lineInsertion') {
-  //  //      $row.find('input[name="line"]').val(thisRow.cells[1].dataLineNum)
-  //  //    } else {
-  //  //      $row.find('input[name="line"]').val(thisRow.cells[0].dataLineNum)
-  //  //    }
-  //  //  }
-
-  //  //  $row.remove();
-  //  //  this.state.rows.splice(thisRowIdx + 1, 0, {
-  //  //    type: 'comments',
-  //  //    cells: [{ $element: $row }]
-  //  //  });
-  //  //  this.setState({ rows: this.state.rows });
-  //  //}.bind(this), 800);
-  //},
+    //  $row.remove();
+    //  this.state.rows.splice(thisRowIdx + 1, 0, {
+    //    type: 'comments',
+    //    cells: [{ $element: $row }]
+    //  });
+    //  this.setState({ rows: this.state.rows });
+    //}.bind(this), 800);
+  },
 });
 
 Globals.FileDiffView = FileDiffView;

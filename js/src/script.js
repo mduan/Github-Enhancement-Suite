@@ -18,7 +18,7 @@ $(document).ready(function() {
       <FileDiffView
           numLinesToShow={20}
           fileDiff={fileDiff}
-          sideBySide={false}
+          sideBySide={true}
           wordWrap={true} />
     );
     React.renderComponent(fileDiffView, $fileDiff.get(0));
