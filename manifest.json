@@ -19,11 +19,19 @@
     "js": [
       "js/ext/jquery-2.0.3.js",
       "js/ext/react-0.6.0a.js",
+      "js/ext/underscore-1.5.2.js",
+      "js/ext/backbone-1.1.0.js",
       "js/build/init.js",
       "js/build/utils.js",
-      "js/build/parser.js",
-      "js/build/file_diff_view.js",
-      "js/build/script.js"
+      "js/build/models/init.js",
+      "js/build/models/row.js",
+      "js/build/models/row_group.js",
+      "js/build/models/file_diff.js",
+      "js/build/models/diff_viewer.js",
+      "js/build/views/init.js",
+      "js/build/views/file_diff_view.js",
+      "js/build/views/checkboxes_view.js",
+      "js/build/main.js"
     ]
   }],
   "permissions": [

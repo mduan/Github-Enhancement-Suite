@@ -1,5 +1,17 @@
 (function() {
 
+// Additions to underscore
+
+_.isInt = function(n) {
+  return typeof n === 'number' && n % 1 === 0;
+};
+
+_.isFloat = function(n) {
+  return typeof n === 'number' && n % 1 !== 0;
+}
+
+// Other stuff...
+
 Array.prototype.first = function() {
   return this[0];
 }
@@ -18,10 +30,6 @@ function assert(condition, message) {
   }
 };
 
-function isNum(value) {
-  return !isNaN(value);
-};
-
 function inherit(Child, Parent, prototype) {
   function Proto() {
   }
@@ -35,10 +43,41 @@ function inherit(Child, Parent, prototype) {
   return Child;
 };
 
+function getSetting(key) {
+  return getSettings([key]).then(function(settings) {
+    return settings[key];
+  });
+}
+
+function getSettings(keys) {
+  var deferred = new $.Deferred();
+  chrome.storage.sync.get(keys, function(settings) {
+    deferred.resolve(settings);
+  });
+  return deferred.promise();
+}
+
+function saveSetting(key, value) {
+  var settings = {};
+  settings[key] = value;
+  return saveSettings(settings);
+}
+
+function saveSettings(settings) {
+  var deferred = new $.Deferred();
+  chrome.storage.sync.set(settings, function() {
+    deferred.resolve();
+  });
+  return deferred.promise();
+}
+
 Globals.Utils = {
   assert: assert,
   inherit: inherit,
-  isNum: isNum,
+  getSetting: getSetting,
+  getSettings: getSettings,
+  saveSetting: saveSetting,
+  saveSettings: saveSettings,
 };
 
 })();

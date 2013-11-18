@@ -1,8 +1,9 @@
 all:
 	jsx js/src/ js/build/
 
-loop:
+watch:
+	# jsx -w js/src/ js/build/
 	while true; do make all; sleep 2; done
 
 clean:
-	rm -r js/build/
+	rm -rf js/build/

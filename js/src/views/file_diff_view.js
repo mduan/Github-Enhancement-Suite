@@ -2,124 +2,35 @@
 
 (function() {
 
-var Parser = Globals.Parser;
-var FileDiff = Parser.FileDiff;
-var UnchangedRowGroup = Parser.UnchangedRowGroup;
-var ChangedRowGroup = Parser.ChangedRowGroup;
-var UnchangedRow = Parser.UnchangedRow;
-var ChangedRow = Parser.ChangedRow;
-var InsertedRow = Parser.InsertedRow;
-var DeletedRow = Parser.DeletedRow;
-var Comment = Parser.Comment;
-var LineNum = Parser.LineNum;
+var Models = Globals.Models;
+var FileDiff = Models.FileDiff;
+var RowGroup = Models.RowGroup;
+var Row = Models.Row;
 
 var assert = Globals.Utils.assert;
-var isNum = Globals.Utils.isNum;
-
-function getMissingRangeInfo(prevRowGroup, nextRowGroup, totalLines) {
-  assert(prevRowGroup || nextRowGroup);
-
-  if (!prevRowGroup) {
-    var position = 'first';
-    var deletedRange = nextRowGroup.getDeletedRange();
-    var insertedRange = nextRowGroup.getInsertedRange();
-    assert(deletedRange[0] === insertedRange[0]);
-
-    var deletedIdx = 0;
-    var insertedIdx = 0;
-    var length = deletedRange[0];
-  } else if (!nextRowGroup) {
-    var position = 'last';
-    var deletedRange = prevRowGroup.getDeletedRange();
-    var insertedRange = prevRowGroup.getInsertedRange();
-
-    var deletedIdx = deletedRange[1];
-    var insertedIdx = insertedRange[1];
-    var length = isNum(totalLines) ? totalLines - insertedIdx : -1;
-  } else {
-    position = 'middle';
-    var prevDeletedRange = prevRowGroup.getDeletedRange();
-    var prevInsertedRange = prevRowGroup.getInsertedRange();
-    var nextDeletedRange = nextRowGroup.getDeletedRange();
-    var nextInsertedRange = nextRowGroup.getInsertedRange();
-    assert((nextDeletedRange[0] - prevDeletedRange[1]) ===
-           (nextInsertedRange[0] - prevInsertedRange[1]));
-
-    var deletedIdx = prevDeletedRange[1];
-    var insertedIdx = prevInsertedRange[1];
-    var length = nextDeletedRange[0] - prevDeletedRange[1];
-  }
-
-  return {
-    position: position,
-    deletedIdx: deletedIdx,
-    insertedIdx: insertedIdx,
-    length: length,
-  };
-}
-
-function getShowRowGroup(fileLines, showRange) {
-  var rowGroup = new UnchangedRowGroup();
-  for (var i = 0; i < showRange.length; ++i) {
-    var currDeletedIdx = showRange.deletedIdx + i;
-    var currInsertedIdx = showRange.insertedIdx + i;
-    var fileLine = fileLines[currInsertedIdx];
-    fileLine = $('<div/>').text(' ' + fileLine).html();
-    fileLine = fileLine
-      .replace(/ /g, '&nbsp;')
-      .replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;');
-
-    var row = new UnchangedRow({
-      lineNum: new LineNum({ idx: currDeletedIdx }),
-      text: fileLine,
-      commentUrl: '',
-      position: '',
-    });
-    rowGroup.addDeletedRow(row);
-
-    var row = new UnchangedRow({
-      lineNum: new LineNum({ idx: currInsertedIdx }),
-      text: fileLine,
-      commentUrl: '',
-      position: '',
-    });
-    rowGroup.addInsertedRow(row);
-  }
-  return rowGroup;
-}
 
 var FileDiffView = React.createClass({
 
-  getInitialState: function() {
-    return {
-      sideBySide: this.props.sideBySide,
-      wordWrap: this.props.wordWrap,
-      numLinesToShow: this.props.numLinesToShow,
-      fileDiff: this.props.fileDiff,
-    };
+  componentWillMount: function() {
+    var fileDiff = this.props.fileDiff;
+    var diffViewer = this.props.diffViewer;
+    fileDiff.on('change', this.reRender, this);
+    fileDiff.get('rowGroups').on('add', this.reRender, this);
+    diffViewer.on('change', this.reRender, this);
   },
 
-  fetchFile: function() {
-    if (this.state.fileDataPromise) {
-      return this.state.fileDataPromise;
-    }
-
-    var self = this;
-    this.state.fileDataPromise = $.get(this.state.fileDiff.rawUrl).then(function(data) {
-      // TODO(mack): Create class in Parser namespace to store this.
-      var fileLines = data.split(/\r?\n/);
-      self.totalLines = fileLines.length;
-      return fileLines;
-    });
-    return this.state.fileDataPromise;
+  componentWillUnmount: function() {
+    this.props.fileDiff.off();
+    this.props.diffViewer.off();
   },
 
   clickShowLines: function(prevRowGroup, nextRowGroup, evt, currTargetId) {
-    var numLines = this.state.numLinesToShow;
+    var numLines = this.props.diffViewer.get('numLinesToShow');
     // TODO(mack): See if there's a less hacky way to get the real target.
     var $target = $('[data-reactid="' + currTargetId + '"]');
-    this.fetchFile().then(function(fileLines) {
-      var rangeInfo = getMissingRangeInfo(prevRowGroup, nextRowGroup, fileLines.length);
+    this.props.fileDiff.fetchFile().then(function(fileLines) {
+      var rangeInfo = RowGroup.getMissingRangeInfo(
+        prevRowGroup, nextRowGroup, fileLines.length);
 
       if ($target.hasClass('showAll') || rangeInfo.length <= numLines) {
         var showRange = {
@@ -142,9 +53,8 @@ var FileDiffView = React.createClass({
         };
       }
 
-      var rowGroup = getShowRowGroup(fileLines, showRange);
-      this.state.fileDiff.getRowGroups().insertAfter(prevRowGroup, rowGroup);
-      this.setState({ fileDiff: this.state.fileDiff })
+      var rowGroup = RowGroup.createRowGroup(fileLines, showRange);
+      this.props.fileDiff.get('rowGroups').insertAfter(prevRowGroup, rowGroup);
 
     }.bind(this));
 
@@ -153,10 +63,12 @@ var FileDiffView = React.createClass({
 
   renderShowLinesLinks: function(prevRowGroup, nextRowGroup) {
 
-    var totalLines = this.state.totalLines;
-    var rangeInfo = getMissingRangeInfo(prevRowGroup, nextRowGroup, totalLines);
+    var numLines = this.props.fileDiff.get('numLines');
+    var rangeInfo = RowGroup.getMissingRangeInfo(
+        prevRowGroup, nextRowGroup, numLines);
 
-    var clickShowLines = this.clickShowLines.bind(this, prevRowGroup, nextRowGroup);
+    var clickShowLines = this.clickShowLines.bind(
+        this, prevRowGroup, nextRowGroup);
     var links = [];
     if (rangeInfo.position === 'last' && rangeInfo.length < 0) {
       var showAllLink = (
@@ -176,8 +88,10 @@ var FileDiffView = React.createClass({
 
     links.push(showAllLink);
 
+    var numLinesToShow = this.props.fileDiff.get('numLinesToShow');
+
     if (rangeInfo.length >= 0 &&
-        rangeInfo.length < this.state.numLinesToShow * 2) {
+        rangeInfo.length < numLinesToShow * 2) {
       return links;
     }
 
@@ -185,7 +99,7 @@ var FileDiffView = React.createClass({
       var showAboveLink = [
         <a onClick={clickShowLines}
             className="showAbove" href="#">
-          ▲ Show {this.state.numLinesToShow} lines
+          ▲ Show {numLinesToShow} lines
         </a>,
         <span className="dot">•</span>
       ];
@@ -193,7 +107,7 @@ var FileDiffView = React.createClass({
         <span className="dot">•</span>,
         <a onClick={clickShowLines}
             className="showBelow" href="#">
-          Show last {this.state.numLinesToShow} lines
+          Show last {numLinesToShow} lines
         </a>
       ];
 
@@ -201,7 +115,7 @@ var FileDiffView = React.createClass({
       var showAboveLink = [
         <a onClick={clickShowLines}
             className="showAbove" href="#">
-          Show first {this.state.numLinesToShow} lines
+          Show first {numLinesToShow} lines
         </a>,
         <span className="dot">•</span>
       ];
@@ -209,14 +123,14 @@ var FileDiffView = React.createClass({
         <span className="dot">•</span>,
         <a onClick={clickShowLines}
             className="showBelow" href="#">
-          ▼ Show {this.state.numLinesToShow} lines
+          ▼ Show {numLinesToShow} lines
         </a>
       ];
     } else {
       var showAboveLink = [
         <a onClick={clickShowLines}
             className="showAbove" href="#">
-          ▲ Show {this.state.numLinesToShow} lines
+          ▲ Show {numLinesToShow} lines
         </a>,
         <span className="dot">•</span>
       ];
@@ -224,7 +138,7 @@ var FileDiffView = React.createClass({
         <span className="dot">•</span>,
         <a onClick={clickShowLines}
             className="showBelow" href="#">
-          ▼ Show {this.state.numLinesToShow} lines
+          ▼ Show {numLinesToShow} lines
         </a>
       ];
     }
@@ -240,7 +154,7 @@ var FileDiffView = React.createClass({
    */
 
   componentDidMount: function(rootNode) {
-    if (this.state.sideBySide) {
+    if (this.props.diffViewer.get('sideBySide')) {
       $('#wrapper .container').addClass('large');
     } else {
       $('#wrapper .container').removeClass('large');
@@ -273,8 +187,12 @@ var FileDiffView = React.createClass({
     //});
   },
 
+  reRender: function() {
+    this.setState({ random: Math.random() });
+  },
+
   render: function() {
-    if (this.state.sideBySide) {
+    if (this.props.diffViewer.get('sideBySide')) {
       return this.sideBySideRender();
     } else {
       return this.inlineRender();
@@ -288,15 +206,12 @@ var FileDiffView = React.createClass({
 
   inlineRender: function() {
     var rowViews = [];
-    var fileDiff = this.props.fileDiff;
-    var iter = fileDiff.getRowGroups().iterator();
     var prevRowGroup;
-    while (iter.hasNext()) {
-      var rowGroup = iter.next();
+    this.props.fileDiff.get('rowGroups').each(function(rowGroup) {
       var prevEndIdx = prevRowGroup ? prevRowGroup.getInsertedRange()[1] : 0;
 
       var currBeginIdx = rowGroup.getInsertedRange()[0];
-      if (!isNum(currBeginIdx)) {
+      if (!_.isInt(currBeginIdx)) {
         currBeginIdx = prevEndIdx;
       }
 
@@ -307,30 +222,29 @@ var FileDiffView = React.createClass({
         assert(currBeginIdx === prevEndIdx);
       }
 
-      var deletedRows = rowGroup.deletedRows;
-      var insertedRows = rowGroup.insertedRows;
-      if (rowGroup instanceof UnchangedRowGroup) {
-        assert(deletedRows.length === insertedRows.length);
-        for (var rowIdx = 0; rowIdx < deletedRows.length; ++rowIdx) {
-          rowViews.pushArr(
-            this.inlineRenderCode(
-                deletedRows[rowIdx],
-                insertedRows[rowIdx])
-          );
-        }
+      var deletedRows = rowGroup.get('deletedRows');
+      var insertedRows = rowGroup.get('insertedRows');
+      if (rowGroup.isUnchangedType()) {
+        assert(deletedRows.size() === insertedRows.size());
+        var rowTuples = _.zip(deletedRows.models, insertedRows.models);
+        _.each(rowTuples, function(rowTuple) {
+          rowViews.pushArr(this.inlineRenderCode(rowTuple[0], rowTuple[1]));
+        }.bind(this));
       } else {
-        assert(rowGroup instanceof ChangedRowGroup);
-        for (var rowIdx = 0; rowIdx < deletedRows.length; ++rowIdx) {
-          rowViews.pushArr(this.inlineRenderCode(deletedRows[rowIdx]));
-        }
-        for (var rowIdx = 0; rowIdx < insertedRows.length; ++rowIdx) {
-          rowViews.pushArr(this.inlineRenderCode(insertedRows[rowIdx]));
-        }
+        assert(rowGroup.isChangedType());
+        deletedRows.each(function(row) {
+          rowViews.pushArr(this.inlineRenderCode(row));
+        }.bind(this));
+        insertedRows.each(function(row) {
+          rowViews.pushArr(this.inlineRenderCode(row));
+        }.bind(this));
       }
 
       prevRowGroup = rowGroup;
+    }.bind(this));
+    if (!this.props.fileDiff.hasLastRowGroup()) {
+      rowViews.push(this.inlineRenderShowLines(prevRowGroup, null));
     }
-    rowViews.push(this.inlineRenderShowLines(prevRowGroup, null));
 
     return (
       <tbody>
@@ -340,7 +254,7 @@ var FileDiffView = React.createClass({
   },
 
   inlineRenderShowLines: function(prevRowGroup, nextRowGroup) {
-    var rangeInfo = getMissingRangeInfo(prevRowGroup, nextRowGroup);
+    var rangeInfo = RowGroup.getMissingRangeInfo(prevRowGroup, nextRowGroup);
     return (
       <tr className={'showLines ' + rangeInfo.position}>
         <td colSpan={3}>
@@ -365,29 +279,39 @@ var FileDiffView = React.createClass({
   },
 
   inlineRenderCode: function(row, row2) {
-    if (row instanceof DeletedRow) {
+    assert(row);
+    if (row.isDeletedType()) {
       var rowClass = 'gd';
-      var deletedLineNum = row.lineNum;
-      var insertedLineNum = {};
-    } else if (row instanceof InsertedRow) {
+      var deletedLineNum = row.get('lineNum').toJSON();
+      var insertedLineNum = {
+        idx: NaN,
+        htmlId: '',
+        dataNum: NaN,
+      };
+    } else if (row.isInsertedType()) {
       var rowClass = 'gi';
-      var deletedLineNum = {};
-      var insertedLineNum = row.lineNum;
-    } else if (row instanceof UnchangedRow) {
+      var deletedLineNum = {
+        idx: NaN,
+        htmlId: '',
+        dataNum: NaN,
+      };
+      var insertedLineNum = row.get('lineNum');
+    } else {
+      assert(row.isUnchangedType());
+      // row2 represents the right side of unchanged row, which contains
+      // inserted line number.
       assert(row2);
       var rowClass = '';
-      var deletedLineNum = row.lineNum;
-      var insertedLineNum = row2.lineNum;
-    } else {
-      assert(false, 'Unexpected row type: ' + row.type);
+      var deletedLineNum = row.get('lineNum').toJSON();
+      var insertedLineNum = row2.get('lineNum').toJSON();
     }
 
-    if (row.commentUrl) {
+    if (row.has('commentUrl')) {
       // TODO(mack): see if there's some way to use React to generate markup
       var commentIcon = (
         <b onClick={this.inlineClickAddComment}
             className="add-line-comment octicon octicon-comment-add"
-            data-remote={row.commentUrl}></b>
+            data-remote={row.get('commentUrl')}></b>
       );
     } else {
       var commentIcon = '';
@@ -396,35 +320,35 @@ var FileDiffView = React.createClass({
     var views = [];
     var codeView = (
       <tr className={'file-diff-line ' + rowClass}>
-        <td id={deletedLineNum.id || ''}
+        <td id={deletedLineNum.htmlId}
             className={'diff-line-num linkable-line-number '
-              + (isNum(deletedLineNum.idx) ? '' : 'empty-cell')}
-            data-line-number={deletedLineNum.dataNum || ''}>
+              + (_.isInt(deletedLineNum.idx) ? '' : 'empty-cell')}
+            data-line-number={_.isInt(deletedLineNum.dataNum) || ''}>
           <span className="line-num-content">
             {(deletedLineNum.idx + 1) || ''}
           </span>
         </td>
 
-        <td id={insertedLineNum.id || ''}
+        <td id={insertedLineNum.htmlId}
             className={'diff-line-num linkable-line-number '
-              + (isNum(insertedLineNum.idx) ? '' : 'empty-cell')}
-            data-line-number={insertedLineNum.dataNum || ''}>
+              + (_.isInt(insertedLineNum.idx) ? '' : 'empty-cell')}
+            data-line-number={_.isInt(insertedLineNum.dataNum) || ''}>
           <span className="line-num-content">
             {(insertedLineNum.idx + 1) || ''}
           </span>
         </td>
 
-        <td className="diff-line-code" data-position={row.position}>
+        <td className="diff-line-code" data-position={_.isInt(row.get('position')) || ''}>
           {commentIcon}
-          <span dangerouslySetInnerHTML={{ __html: row.text }}>
+          <span dangerouslySetInnerHTML={{ __html: row.get('text') }}>
           </span>
         </td>
       </tr>
     );
     views.push(codeView);
 
-    if (row.comment) {
-      var commentView = this.inlineRenderComment(row.comment);
+    if (row.has('comment')) {
+      var commentView = this.inlineRenderComment(row.get('comment'));
       views.push(commentView);
     }
 
@@ -444,37 +368,38 @@ var FileDiffView = React.createClass({
 
     var rowViews = [];
     var prevRowGroup;
-    var iter = this.state.fileDiff.getRowGroups().iterator();
-    while (iter.hasNext()) {
-      var rowGroup = iter.next();
+    this.props.fileDiff.get('rowGroups').each(function(rowGroup) {
       var prevEndIdx = prevRowGroup ? prevRowGroup.getInsertedRange()[1] : 0;
 
       var currBeginIdx = rowGroup.getInsertedRange()[0];
-      if (!isNum(currBeginIdx)) {
+      if (!_.isInt(currBeginIdx)) {
         currBeginIdx = prevEndIdx;
       }
 
-      if (isNum(prevEndIdx) && currBeginIdx > prevEndIdx) {
+      if (_.isInt(prevEndIdx) && currBeginIdx > prevEndIdx) {
         // We have a missing range
         rowViews.push(this.sideBySideRenderShowLines(prevRowGroup, rowGroup));
       } else {
         assert(currBeginIdx === prevEndIdx);
       }
 
-      var maxLength = Math.max(rowGroup.deletedRows.length, rowGroup.insertedRows.length);
-      for (var rowIdx = 0; rowIdx < maxLength; ++rowIdx) {
-        var deletedRow = rowGroup.deletedRows[rowIdx];
-        var insertedRow = rowGroup.insertedRows[rowIdx];
+      var rowTuples = _.zip(
+        rowGroup.get('deletedRows').models, rowGroup.get('insertedRows').models);
+      _.each(rowTuples, function(rowTuple) {
+        var deletedRow = rowTuple[0];
+        var insertedRow = rowTuple[1];
         rowViews.push(this.sideBySideRenderCode(deletedRow, insertedRow));
-
-        if (deletedRow && deletedRow.comment ||
-            insertedRow && insertedRow.comment) {
+        if (deletedRow && deletedRow.get('comment') ||
+            insertedRow && insertedRow.get('comment')) {
           rowViews.push(this.sideBySideRenderComment(deletedRow, insertedRow));
         }
-      }
+      }.bind(this));
+
       prevRowGroup = rowGroup;
+    }.bind(this));
+    if (!this.props.fileDiff.hasLastRowGroup()) {
+      rowViews.push(this.sideBySideRenderShowLines(prevRowGroup, null));
     }
-    rowViews.push(this.sideBySideRenderShowLines(prevRowGroup, null));
 
     return (
       <tbody>
@@ -484,36 +409,36 @@ var FileDiffView = React.createClass({
   },
 
   sideBySideOnMouseDown: function(evt) {
-    var selection = window.getSelection();
-    if (selection.rangeCount > 0) {
-      selection.removeAllRanges();
-    }
+    //var selection = window.getSelection();
+    //if (selection.rangeCount > 0) {
+    //  selection.removeAllRanges();
+    //}
 
-    var $target = $(evt.target);
-    if (!$target.hasClass('diff-line-code')) {
-      $target = $target.closest('.diff-line-code');
-    }
+    //var $target = $(evt.target);
+    //if (!$target.hasClass('diff-line-code')) {
+    //  $target = $target.closest('.diff-line-code');
+    //}
 
-    if (!$target.hasClass('diff-line-code')) {
-      $(evt.target).closest('.file-diff')
-        .removeClass('unselectableInsertion')
-        .removeClass('unselectableDeletion');
-      return;
-    }
+    //if (!$target.hasClass('diff-line-code')) {
+    //  $(evt.target).closest('.file-diff')
+    //    .removeClass('unselectableInsertion')
+    //    .removeClass('unselectableDeletion');
+    //  return;
+    //}
 
-    if ($target.index() === 1) {
-      $target.closest('.file-diff')
-        .addClass('unselectableInsertion')
-        .removeClass('unselectableDeletion');
-    } else /* index == 3 */ {
-      $target.closest('.file-diff')
-        .addClass('unselectableDeletion')
-        .removeClass('unselectableInsertion');
-    }
+    //if ($target.index() === 1) {
+    //  $target.closest('.file-diff')
+    //    .addClass('unselectableInsertion')
+    //    .removeClass('unselectableDeletion');
+    //} else /* index == 3 */ {
+    //  $target.closest('.file-diff')
+    //    .addClass('unselectableDeletion')
+    //    .removeClass('unselectableInsertion');
+    //}
   },
 
   sideBySideRenderShowLines: function(prevRowGroup, nextRowGroup) {
-    var rangeInfo = getMissingRangeInfo(prevRowGroup, nextRowGroup);
+    var rangeInfo = RowGroup.getMissingRangeInfo(prevRowGroup, nextRowGroup);
     return (
       <tr className={'showLines ' + rangeInfo.position}>
         <td colSpan={4}>
@@ -525,14 +450,17 @@ var FileDiffView = React.createClass({
 
   sideBySideRenderComment: function(deletedRow, insertedRow) {
     // For unchanged row, comments will always be rendered on inserted side.
-    if (deletedRow && deletedRow.comment && !(deletedRow instanceof UnchangedRow)) {
-      var deletedCommentViews = this.sideBySideRenderCommentColumn(deletedRow.comment);
+    if (deletedRow && deletedRow.has('comment') &&
+        !deletedRow.isDeletedType()) {
+      var deletedCommentViews = this.sideBySideRenderCommentColumn(
+          deletedRow.get('comment'));
     } else {
       var deletedCommentViews = this.sideBySideRenderCommentColumn(null);
     }
 
-    if (insertedRow && insertedRow.comment) {
-      var insertedCommentViews = this.sideBySideRenderCommentColumn(insertedRow.comment);
+    if (insertedRow && insertedRow.has('comment')) {
+      var insertedCommentViews = this.sideBySideRenderCommentColumn(
+          insertedRow.get('comment'));
     } else {
       var insertedCommentViews = this.sideBySideRenderCommentColumn(null);
     }
@@ -563,7 +491,6 @@ var FileDiffView = React.createClass({
   },
 
   sideBySideRenderCode: function(deletedRow, insertedRow) {
-
     var deletedViews = this.sideBySideRenderCodeColumn(deletedRow);
     var insertedViews = this.sideBySideRenderCodeColumn(insertedRow);
 
@@ -583,16 +510,16 @@ var FileDiffView = React.createClass({
       var position = '';
       var commentIcon = '';
     } else {
-      if (row instanceof InsertedRow) {
+      if (row.isInsertedType()) {
         var rowClass = 'gi';
-      } else if (row instanceof DeletedRow) {
+      } else if (row.isDeletedType()) {
         var rowClass = 'gd';
       } else {
-        assert(row instanceof UnchangedRow);
+        assert(row.isUnchangedType());
       }
-      var text = row.text;
-      var lineNum = row.lineNum;
-      var position = row.position;
+      var text = row.get('text');
+      var lineNum = row.get('lineNum');
+      var position = row.get('position');
       var commentIcon = (
         <b onClick={this.sideBySideClickAddComment}
           className="add-line-comment octicon octicon-comment-add"
@@ -601,9 +528,9 @@ var FileDiffView = React.createClass({
     }
 
     var views = [
-      <td id={lineNum.id}
+      <td id={lineNum.get('htmlId')}
           className={'diff-line-num linkable-line-number '
-            + (isNum(lineNum.idx) ? '' : 'empty-cell')}
+            + (_.isInt(lineNum.idx) ? '' : 'empty-cell')}
           data-line-number={lineNum.dataNum || ''}>
         <span className="line-num-content">
           {(lineNum.idx + 1) || ''}
@@ -673,6 +600,7 @@ var FileDiffView = React.createClass({
   },
 });
 
-Globals.FileDiffView = FileDiffView;
+
+Globals.Views.FileDiffView = FileDiffView;
 
 })();
