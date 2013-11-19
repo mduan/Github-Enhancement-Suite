@@ -12,8 +12,8 @@ $(document).ready(function() {
     var sideBySide = 'sideBySide' in settings ? settings.sideBySide : true;
 
     var diffViewer = new DiffViewer({
-      sideBySide: false,
-      wordWrap: false,
+      sideBySide: sideBySide,
+      wordWrap: wordWrap,
       numLinesToShow: 20,
     });
 
