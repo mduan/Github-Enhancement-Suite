@@ -149,6 +149,19 @@ var FileDiffView = React.createClass({
     return links;
   },
 
+  renderLineNumberCell: function(lineNum) {
+    return (
+      <td id={lineNum.htmlId}
+          className={'diff-line-num linkable-line-number '
+            + (_.isInt(lineNum.idx) ? '' : 'empty-cell')}
+          data-line-number={_.isInt(lineNum.dataNum) || ''}>
+        <span className="line-num-content">
+          {(lineNum.idx + 1) || ''}
+        </span>
+      </td>
+    );
+  },
+
   /**
    * Following are functions that dispatch to inline or side by side
    */
@@ -268,10 +281,10 @@ var FileDiffView = React.createClass({
     var commentsView = (
       <tr className="inline-comments show">
         <td className="file-line-numbers comment-count" colSpan="2"
-            dangerouslySetInnerHTML={{ __html: comment.$count.html() }}>
+            dangerouslySetInnerHTML={{ __html: comment.get('$count').html() }}>
         </td>
         <td className="js-line-comments line-comments" colSpan="1"
-            dangerouslySetInnerHTML={{ __html: comment.$text.html() }}>
+            dangerouslySetInnerHTML={{ __html: comment.get('$text').html() }}>
         </td>
       </tr>
     );
@@ -320,24 +333,8 @@ var FileDiffView = React.createClass({
     var views = [];
     var codeView = (
       <tr className={'file-diff-line ' + rowClass}>
-        <td id={deletedLineNum.htmlId}
-            className={'diff-line-num linkable-line-number '
-              + (_.isInt(deletedLineNum.idx) ? '' : 'empty-cell')}
-            data-line-number={_.isInt(deletedLineNum.dataNum) || ''}>
-          <span className="line-num-content">
-            {(deletedLineNum.idx + 1) || ''}
-          </span>
-        </td>
-
-        <td id={insertedLineNum.htmlId}
-            className={'diff-line-num linkable-line-number '
-              + (_.isInt(insertedLineNum.idx) ? '' : 'empty-cell')}
-            data-line-number={_.isInt(insertedLineNum.dataNum) || ''}>
-          <span className="line-num-content">
-            {(insertedLineNum.idx + 1) || ''}
-          </span>
-        </td>
-
+        {this.renderLineNumberCell(deletedLineNum)}
+        {this.renderLineNumberCell(insertedLineNum)}
         <td className="diff-line-code" data-position={_.isInt(row.get('position')) || ''}>
           {commentIcon}
           <span dangerouslySetInnerHTML={{ __html: row.get('text') }}>
@@ -449,11 +446,17 @@ var FileDiffView = React.createClass({
   },
 
   sideBySideRenderComment: function(deletedRow, insertedRow) {
-    // For unchanged row, comments will always be rendered on inserted side.
-    if (deletedRow && deletedRow.has('comment') &&
-        !deletedRow.isDeletedType()) {
-      var deletedCommentViews = this.sideBySideRenderCommentColumn(
-          deletedRow.get('comment'));
+    assert(deletedRow || insertedRow);
+
+    if (deletedRow && deletedRow.has('comment')) {
+      if (deletedRow.isDeletedType()) {
+        var deletedCommentViews = this.sideBySideRenderCommentColumn(
+            deletedRow.get('comment'));
+      } else {
+        // For unchanged row, comments will always be rendered on inserted side.
+        assert(insertedRow.has('comment') && insertedRow.isUnchangedType());
+        var deletedCommentViews = this.sideBySideRenderCommentColumn(null);
+      }
     } else {
       var deletedCommentViews = this.sideBySideRenderCommentColumn(null);
     }
@@ -481,10 +484,10 @@ var FileDiffView = React.createClass({
     } else {
       return [
         <td className="file-line-numbers comment-count" colSpan="1"
-            dangerouslySetInnerHTML={{ __html: row.$count.html() }}>
+            dangerouslySetInnerHTML={{ __html: comment.get('$count').html() }}>
         </td>,
         <td className="js-line-comments line-comments" colSpan="1"
-            dangerouslySetInnerHTML={{ __html: row.$text.html() }}>
+            dangerouslySetInnerHTML={{ __html: comment.get('$text').html() }}>
         </td>,
       ];
     }
@@ -518,7 +521,7 @@ var FileDiffView = React.createClass({
         assert(row.isUnchangedType());
       }
       var text = row.get('text');
-      var lineNum = row.get('lineNum');
+      var lineNum = row.get('lineNum').toJSON();
       var position = row.get('position');
       var commentIcon = (
         <b onClick={this.sideBySideClickAddComment}
@@ -528,15 +531,7 @@ var FileDiffView = React.createClass({
     }
 
     var views = [
-      <td id={lineNum.get('htmlId')}
-          className={'diff-line-num linkable-line-number '
-            + (_.isInt(lineNum.get('idx')) ? '' : 'empty-cell')}
-          data-line-number={lineNum.get('dataNum') || ''}>
-        <span className="line-num-content">
-          {(lineNum.get('idx') + 1) || ''}
-        </span>
-      </td>,
-
+      this.renderLineNumberCell(lineNum),
       <td className={'diff-line-code ' + rowClass} data-position={position}>
         {commentIcon}
         <span dangerouslySetInnerHTML={{ __html: text }}>

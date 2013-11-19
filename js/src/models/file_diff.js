@@ -133,6 +133,8 @@ FileDiff.createFileDiff = function($fileDiff) {
         });
         currGroup.addDeletedRow(row);
         prevRow1 = row;
+      } else {
+        prevRow1 = null;
       }
       if (rowType === Row.Type.INSERTED || rowType === Row.Type.UNCHANGED) {
         var insertedLineNum = parseLineNumberCell($cells.eq(1));
@@ -145,9 +147,12 @@ FileDiff.createFileDiff = function($fileDiff) {
         });
         currGroup.addInsertedRow(row);
         prevRow2 = row;
+      } else {
+        prevRow2 = null;
       }
     } else {
       assert($row.hasClass('inline-comments'));
+      assert($row.prev().hasClass('file-diff-line'));
       // TODO(mack): Consider creating JSX representing element rather than
       // cloning
       var comment = new Comment({
