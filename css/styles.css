@@ -1,0 +1,140 @@
+.wordWrap .diff-line-pre {
+  white-space: normal;
+}
+
+.wrapper .container.large {
+  width: 95%;
+}
+.wrapper .container.large .repository-content {
+  width: 95%;
+}
+
+.settingCheckboxes {
+  margin-left: 10px;
+}
+
+.settingCheckboxes #wordWrap,
+.settingCheckboxes #sideBySide {
+  margin-left: 15px;
+}
+
+.settingCheckboxes #wordWrapLabel,
+.settingCheckboxes #sideBySideLabel {
+  margin-left: 5px;
+}
+
+.new-number {
+  border-left: 1px solid #ddd;
+}
+
+.gd .diff-line-num.nd {
+  background-color: white;
+  border-left: 1px solid #e5e5e5;
+  border-right: 1px solid #e5e5e5;
+}
+
+.gi .diff-line-num.nd {
+  background-color: white;
+  border-right: 1px solid #e5e5e5;
+}
+
+.gd .diff-line-code.nd,
+.gi .diff-line-code.nd {
+  background-color: white;
+}
+
+#files .showLines td {
+  text-align: center;
+  border-top: 1px solid #cca;
+  border-bottom: 1px solid #cca;
+  background-color: #ffe;
+  padding: 1em 0;
+}
+
+#files .showLines.first td {
+  border-top: 0;
+}
+
+#files .showLines.last td {
+  border-bottom: 0;
+}
+
+#files .showLines {
+  font-size: 12px;
+}
+
+.inline-comments:not(.show) {
+  display: none !important;
+}
+
+.inline-comments .placeholder {
+  background-color: white;
+}
+
+.empty-num, .empty-line {
+  background-color: white;
+}
+
+.sideBySide .file-diff td {
+  border-right: 1px solid #e5e5e5;
+}
+
+.sideBySide .file-diff td:nth-child(1),
+.sideBySide .file-diff td:nth-child(3) {
+  text-align: right;
+  background: #eee;
+  border-right: 1px solid #ccc;
+  padding: 2px 6px 0 0;
+  min-width: 35px;
+  max-width: 5%;
+}
+
+.sideBySide .file-diff td {
+  word-break: break-all;
+  word-wrap: break-word;
+}
+
+.sideBySide .file-diff td:nth-child(2) {
+  width: 45%;
+}
+
+.sideBySide .file-diff td:last-child {
+  width: 45%;
+  border-right: 0;
+}
+
+.diff-line-code {
+  position: relative;
+}
+
+.diff-line-code .add-line-comment {
+  position: absolute;
+  background-color: #f8eec7;
+  left: 27px;
+  width: 14px;
+  top: 0px;
+}
+
+.file-diff .file-diff-line .diff-line-num {
+  color: rgba(0, 0, 0, 0.3);
+}
+
+#files .file-diff-line,
+#files .diff-line-code {
+  font-family: Menlo, Consolas, Monaco, monospace;
+  font-size: 10px;
+}
+
+.sideBySide .file-diff.unselectableDeletion .inline-comments,
+.sideBySide .file-diff.unselectableInsertion .inline-comments,
+.sideBySide .file-diff.unselectableDeletion tr td:nth-child(2),
+.sideBySide .file-diff.unselectableInsertion tr td:nth-child(4),
+.sideBySide .file-diff tr td:nth-child(1),
+.sideBySide .file-diff tr td:nth-child(3) {
+  -moz-user-select: -moz-none;
+  -khtml-user-select: none;
+  -webkit-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+

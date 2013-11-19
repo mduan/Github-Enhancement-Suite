@@ -88,7 +88,7 @@ var FileDiffView = React.createClass({
 
     links.push(showAllLink);
 
-    var numLinesToShow = this.props.fileDiff.get('numLinesToShow');
+    var numLinesToShow = this.props.diffViewer.get('numLinesToShow');
 
     if (rangeInfo.length >= 0 &&
         rangeInfo.length < numLinesToShow * 2) {
@@ -166,14 +166,6 @@ var FileDiffView = React.createClass({
    * Following are functions that dispatch to inline or side by side
    */
 
-  componentDidMount: function(rootNode) {
-    if (this.props.diffViewer.get('sideBySide')) {
-      $('#wrapper .container').addClass('large');
-    } else {
-      $('#wrapper .container').removeClass('large');
-    }
-  },
-
   componentWillUpdate: function(nextProps, nextState) {
     //this.state.rows.forEach(function(row) {
     //  if (row.type !== 'comments') {
@@ -206,8 +198,10 @@ var FileDiffView = React.createClass({
 
   render: function() {
     if (this.props.diffViewer.get('sideBySide')) {
+      $('.wrapper .container').addClass('large');
       return this.sideBySideRender();
     } else {
+      $('.wrapper .container').removeClass('large');
       return this.inlineRender();
     }
   },
@@ -337,8 +331,8 @@ var FileDiffView = React.createClass({
         {this.renderLineNumberCell(insertedLineNum)}
         <td className="diff-line-code" data-position={_.isInt(row.get('position')) || ''}>
           {commentIcon}
-          <span dangerouslySetInnerHTML={{ __html: row.get('text') }}>
-          </span>
+          <pre className="diff-line-pre" dangerouslySetInnerHTML={{ __html: row.get('text') }}>
+          </pre>
         </td>
       </tr>
     );
@@ -534,8 +528,8 @@ var FileDiffView = React.createClass({
       this.renderLineNumberCell(lineNum),
       <td className={'diff-line-code ' + rowClass} data-position={position}>
         {commentIcon}
-        <span dangerouslySetInnerHTML={{ __html: text }}>
-        </span>
+        <pre className="diff-line-pre" dangerouslySetInnerHTML={{ __html: text }}>
+        </pre>
       </td>
     ];
     return views;

@@ -186,11 +186,9 @@ function parseLineNumberCell($cell) {
 }
 
 function parseCodeCell($cell) {
-  var $clone = $cell.clone();
-  $clone.find('.add-line-comment').remove();
   return {
     commentUrl: $cell.find('.add-line-comment').attr('data-remote'),
-    text: $clone.html(),
+    text: $cell.find('.diff-line-pre').html(),
   };
 }
 
