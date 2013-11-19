@@ -9,7 +9,7 @@ var saveSettings = Globals.Utils.saveSettings;
 
 var CheckboxesView = React.createClass({
 
-  componentWillMount: function() {
+  componentDidMount: function() {
     this.props.diffViewer.on('change', this.reRender, this);
   },
 

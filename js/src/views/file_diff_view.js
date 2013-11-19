@@ -11,7 +11,7 @@ var assert = Globals.Utils.assert;
 
 var FileDiffView = React.createClass({
 
-  componentWillMount: function() {
+  componentDidMount: function() {
     var fileDiff = this.props.fileDiff;
     var diffViewer = this.props.diffViewer;
     fileDiff.on('change', this.reRender, this);
@@ -193,7 +193,14 @@ var FileDiffView = React.createClass({
   },
 
   reRender: function() {
-    this.setState({ random: Math.random() });
+    // TODO(mack): Properly have the view update rather than using this hack.
+    // It's necessary for now to get around bug (likely w/ react.js) where
+    // when switching from side-by-side to inline, the text portion of some
+    // of the comments disappear.
+    var $parent = $(this.getDOMNode()).parent();
+    React.unmountComponentAtNode($parent.get(0));
+    var fileDiffView = <FileDiffView fileDiff={this.props.fileDiff} diffViewer={this.props.diffViewer} />;
+    React.renderComponent(fileDiffView, $parent.get(0));
   },
 
   render: function() {
