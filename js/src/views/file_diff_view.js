@@ -530,10 +530,10 @@ var FileDiffView = React.createClass({
     var views = [
       <td id={lineNum.get('htmlId')}
           className={'diff-line-num linkable-line-number '
-            + (_.isInt(lineNum.idx) ? '' : 'empty-cell')}
-          data-line-number={lineNum.dataNum || ''}>
+            + (_.isInt(lineNum.get('idx')) ? '' : 'empty-cell')}
+          data-line-number={lineNum.get('dataNum') || ''}>
         <span className="line-num-content">
-          {(lineNum.idx + 1) || ''}
+          {(lineNum.get('idx') + 1) || ''}
         </span>
       </td>,
 
