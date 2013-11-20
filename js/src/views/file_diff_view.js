@@ -9,6 +9,15 @@ var Row = Models.Row;
 
 var assert = Globals.Utils.assert;
 
+// Should add to prototype of all React views
+function keyComponentArr(arr) {
+  assert(_.isArray(arr));
+  _.each(arr, function(component, idx) {
+    component.props.key = idx;
+  });
+  return arr;
+}
+
 var FileDiffView = React.createClass({
 
   componentDidMount: function() {
@@ -145,7 +154,6 @@ var FileDiffView = React.createClass({
 
     links = showAboveLink.concat(links);
     links = links.concat(showBelowLink);
-
     return links;
   },
 
@@ -197,10 +205,11 @@ var FileDiffView = React.createClass({
     // It's necessary for now to get around bug (likely w/ react.js) where
     // when switching from side-by-side to inline, the text portion of some
     // of the comments disappear.
-    var $parent = $(this.getDOMNode()).parent();
-    React.unmountComponentAtNode($parent.get(0));
-    var fileDiffView = <FileDiffView fileDiff={this.props.fileDiff} diffViewer={this.props.diffViewer} />;
-    React.renderComponent(fileDiffView, $parent.get(0));
+    //var $parent = $(this.getDOMNode()).parent();
+    //React.unmountComponentAtNode($parent.get(0));
+    //var fileDiffView = <FileDiffView fileDiff={this.props.fileDiff} diffViewer={this.props.diffViewer} />;
+    //React.renderComponent(fileDiffView, $parent.get(0));
+    this.setState({ random: Math.random() });
   },
 
   render: function() {
@@ -262,17 +271,18 @@ var FileDiffView = React.createClass({
 
     return (
       <tbody>
-        {rowViews}
+        {keyComponentArr(rowViews)}
       </tbody>
     );
   },
 
   inlineRenderShowLines: function(prevRowGroup, nextRowGroup) {
     var rangeInfo = RowGroup.getMissingRangeInfo(prevRowGroup, nextRowGroup);
+    var lineLinks = this.renderShowLinesLinks(prevRowGroup, nextRowGroup);
     return (
       <tr className={'showLines ' + rangeInfo.position}>
         <td colSpan={3}>
-          {this.renderShowLinesLinks(prevRowGroup, nextRowGroup)}
+          {keyComponentArr(lineLinks)}
         </td>
       </tr>
     );
@@ -401,7 +411,7 @@ var FileDiffView = React.createClass({
 
     return (
       <tbody>
-        {rowViews}
+        {keyComponentArr(rowViews)}
       </tbody>
     );
   },
@@ -440,7 +450,7 @@ var FileDiffView = React.createClass({
     return (
       <tr className={'showLines ' + rangeInfo.position}>
         <td colSpan={4}>
-          {this.renderShowLinesLinks(prevRowGroup, nextRowGroup)}
+          {keyComponentArr(this.renderShowLinesLinks(prevRowGroup, nextRowGroup))}
         </td>
       </tr>
     );
@@ -471,7 +481,7 @@ var FileDiffView = React.createClass({
     return (
       <tr className="inline-comments show"
           onMouseDown={this.sideBySideOnMouseDown}>
-        {deletedCommentViews.concat(insertedCommentViews)}
+        {keyComponentArr(deletedCommentViews.concat(insertedCommentViews))}
       </tr>
     );
   },
@@ -501,7 +511,7 @@ var FileDiffView = React.createClass({
     return (
       <tr className="file-diff-line"
           onMouseDown={this.sideBySideOnMouseDown}>
-        {deletedViews.concat(insertedViews)}
+        {keyComponentArr(deletedViews.concat(insertedViews))}
       </tr>
     );
   },
