@@ -29,6 +29,7 @@ var RowGroup = Backbone.Model.extend({
   },
 
   initialize: function(params) {
+    this._super('initialize', params);
     assert(this.isValidType());
     assert(this.get('deletedRows') instanceof Rows);
     assert(this.get('insertedRows') instanceof Rows);

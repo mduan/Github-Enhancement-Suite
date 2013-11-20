@@ -14,6 +14,7 @@ var DiffViewer = Backbone.Model.extend({
   },
 
   initialize: function(params) {
+    this._super('initialize', params);
     assert(_.isBoolean(this.get('sideBySide')));
     assert(_.isBoolean(this.get('wordWrap')));
     assert(_.isInt(this.get('numLinesToShow')));

@@ -20,6 +20,7 @@ var FileDiff = Backbone.Model.extend({
   },
 
   initialize: function(params) {
+    this._super('initialize', params);
     assert(this.get('rawUrl') && _.isString(this.get('rawUrl')));
     assert(this.get('rowGroups') instanceof RowGroups);
   },

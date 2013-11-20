@@ -12,6 +12,7 @@ var LineNum = Backbone.Model.extend({
   },
 
   initialize: function(params) {
+    this._super('initialize', params);
     assert(_.isInt(this.get('idx')));
     assert(_.isString(this.get('htmlId')));
     assert(_.isInt(this.get('dataNum')) || _.isNaN(this.get('dataNum')));
@@ -27,6 +28,7 @@ var Comment = Backbone.Model.extend({
   },
 
   initialize: function(params) {
+    this._super('initialize', params);
     assert(this.get('$text') instanceof jQuery);
     assert(this.get('$count') instanceof jQuery);
   },
@@ -45,6 +47,7 @@ var Row = Backbone.Model.extend({
   },
 
   initialize: function(params) {
+    this._super('initialize', params);
     assert(this.isValidType());
     assert(_.isString(this.get('text')));
     assert(_.isInt(this.get('position')) || _.isNaN(this.get('position')));
