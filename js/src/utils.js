@@ -10,6 +10,13 @@ _.isFloat = function(n) {
   return typeof n === 'number' && n % 1 !== 0;
 }
 
+_.deferBy = function(func, millis) {
+  var restArgs = _.rest(arguments, 2);
+  setTimeout(function() {
+    func.apply(null, restArgs);
+  }, millis);
+};
+
 // Other stuff...
 
 Array.prototype.first = function() {

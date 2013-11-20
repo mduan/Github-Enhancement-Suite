@@ -157,7 +157,7 @@ FileDiff.createFileDiff = function($fileDiff) {
       // TODO(mack): Consider creating JSX representing element rather than
       // cloning
       var comment = new Comment({
-        $count: $row.find('.comment-count').clone(),
+        count: parseInt($row.find('.comment-count').text(), 10),
         $text: $row.find('.line-comments').clone(),
       });
       if (prevRow1) {

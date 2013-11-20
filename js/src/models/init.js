@@ -1,5 +1,7 @@
 (function() {
 
+var assert = Globals.Utils.assert;
+
 // Monkey patch Backbone.Model with some useful features
 var origExtend = Backbone.Model.extend;
 Backbone.Model.extend = function() {
@@ -8,12 +10,14 @@ Backbone.Model.extend = function() {
   ExtendedModel._items = {};
   // TODO(mack): Look to create these methods on the prototype
   ExtendedModel.register = function(id, object) {
+    assert(object instanceof ExtendedModel);
     this._items[id] = object;
   };
   ExtendedModel.lookup = function(id) {
     return this._items[id];
   };
   ExtendedModel.remove = function(id) {
+    assert(this.hasOwnProperty(id));
     delete this._items[id];
   };
 

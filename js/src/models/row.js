@@ -23,14 +23,14 @@ var Comment = Backbone.Model.extend({
   defaults: function() {
     return {
       $text: null,
-      $count: null,
+      $count: NaN,
     };
   },
 
   initialize: function(params) {
     this._super('initialize', params);
-    assert(this.get('$text') instanceof jQuery);
-    assert(this.get('$count') instanceof jQuery);
+    assert(this.get('text') instanceof jQuery);
+    assert(_.isInt(this.get('count')));
   },
 });
 

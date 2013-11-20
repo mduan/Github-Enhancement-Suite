@@ -6,6 +6,7 @@ var Models = Globals.Models;
 var FileDiff = Models.FileDiff;
 var RowGroup = Models.RowGroup;
 var Row = Models.Row;
+var Comment = Models.Comment;
 
 var assert = Globals.Utils.assert;
 
@@ -26,11 +27,34 @@ var FileDiffView = React.createClass({
     fileDiff.on('change', this.reRender, this);
     fileDiff.get('rowGroups').on('add', this.reRender, this);
     diffViewer.on('change', this.reRender, this);
+    var $inlineComments = $('.inline-comments', this.getDOMNode());
+    $inlineComments.on(
+      'click', '.js-inline-comment-form button[type=submit]',
+      _.deferBy.bind(null, this.clickComment, 1000));
   },
 
   componentWillUnmount: function() {
     this.props.fileDiff.off();
     this.props.diffViewer.off();
+  },
+
+  clickComment: function(evt) {
+    // For efficiency reasons, there's no need to trigger a view reRender on
+    // change.
+    var $row = $(evt.target).closest('.line-comments');
+    var cid = $row.data('cid');
+    assert(_.isString(cid));
+    var comment = Comment.lookup(cid);
+    assert(comment instanceof Comment);
+    comment.set({
+      // TODO(mack): Validate before incrementing count
+      count: comment.get('count') + 1,
+      // Removing attributes should not be strictly necessary, since
+      // we're just taking children of element when doing .html() in
+      // render
+      $text: $row.clone(), //.removeAttr('data-reactid data-cid colspan'),
+    });
+    this.reRender();
   },
 
   clickShowLines: function(prevRowGroup, nextRowGroup, evt, currTargetId) {
@@ -291,10 +315,11 @@ var FileDiffView = React.createClass({
   inlineRenderComment: function(comment) {
     var commentsView = (
       <tr className="inline-comments show">
-        <td className="file-line-numbers comment-count" colSpan="2"
-            dangerouslySetInnerHTML={{ __html: comment.get('$count').html() }}>
+        <td className="file-line-numbers comment-count" colSpan="2">
+          <span className="octicon octicon-comment"></span>
+          {' ' + comment.get('count') + ' '}
         </td>
-        <td className="js-line-comments line-comments" colSpan="1"
+        <td className="js-line-comments line-comments" colSpan="1" data-cid={comment.cid}
             dangerouslySetInnerHTML={{ __html: comment.get('$text').html() }}>
         </td>
       </tr>
@@ -494,10 +519,11 @@ var FileDiffView = React.createClass({
       ];
     } else {
       return [
-        <td className="file-line-numbers comment-count" colSpan="1"
-            dangerouslySetInnerHTML={{ __html: comment.get('$count').html() }}>
+        <td className="file-line-numbers comment-count" colSpan="1">
+          <span className="octicon octicon-comment"></span>
+          {' ' + comment.get('count') + ' '}
         </td>,
-        <td className="js-line-comments line-comments" colSpan="1"
+        <td className="js-line-comments line-comments" colSpan="1" data-cid={comment.cid}
             dangerouslySetInnerHTML={{ __html: comment.get('$text').html() }}>
         </td>,
       ];
