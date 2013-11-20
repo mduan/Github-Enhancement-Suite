@@ -91,7 +91,7 @@ var FileDiffView = React.createClass({
 
     }.bind(this));
 
-    return false;
+    evt.preventDefault();
   },
 
   renderShowLinesLinks: function(prevRowGroup, nextRowGroup) {
@@ -390,7 +390,7 @@ var FileDiffView = React.createClass({
 
   inlineClickAddComment: function(evt) {
     console.warn('TODO');
-    return false;
+    evt.preventDefault();
   },
 
   /**
@@ -579,7 +579,7 @@ var FileDiffView = React.createClass({
   },
 
   sideBySideClickAddComment: function(evt) {
-    return false;
+    evt.preventDefault();
     //$target = $(evt.target);
     //window.setTimeout(function() {
     //  var rows = this.state.rows;
