@@ -10,11 +10,12 @@ var saveSettings = Globals.Utils.saveSettings;
 var CheckboxesView = React.createClass({
 
   componentDidMount: function() {
-    this.props.diffViewer.on('change', this.reRender, this);
+    this.props.events = _.clone(Backbone.Events);
+    this.props.events.listenTo(this.props.diffViewer, 'change', this.reRender);
   },
 
   componentWillUnmount: function() {
-    this.props.diffViewer.off();
+    this.events.stopListening();
   },
 
   reRender: function() {

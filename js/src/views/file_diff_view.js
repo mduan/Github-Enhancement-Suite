@@ -22,38 +22,53 @@ function keyComponentArr(arr) {
 var FileDiffView = React.createClass({
 
   componentDidMount: function() {
-    var fileDiff = this.props.fileDiff;
-    var diffViewer = this.props.diffViewer;
-    fileDiff.on('change', this.reRender, this);
-    fileDiff.get('rowGroups').on('add', this.reRender, this);
-    diffViewer.on('change', this.reRender, this);
-    var $inlineComments = $('.inline-comments', this.getDOMNode());
-    $inlineComments.on(
+    var events = this.props.events = _.clone(Backbone.Events);
+    events.listenTo(this.props.fileDiff, 'change', this.reRender);
+    events.listenTo(this.props.fileDiff.get('rowGroups'), 'add', this.reRender);
+    events.listenTo(this.props.diffViewer, 'change', this.reRender);
+
+    // TODO(mack): Think of a cleaner way to do this.
+    $(this.getDOMNode()).on(
       'click', '.js-inline-comment-form button[type=submit]',
       _.deferBy.bind(null, this.clickComment, 1000));
   },
 
   componentWillUnmount: function() {
-    this.props.fileDiff.off();
-    this.props.diffViewer.off();
+    this.props.events.stopListening();
+    $(this.getDOMNode()).off();
   },
 
   clickComment: function(evt) {
-    // For efficiency reasons, there's no need to trigger a view reRender on
-    // change.
-    var $row = $(evt.target).closest('.line-comments');
-    var cid = $row.data('cid');
-    assert(_.isString(cid));
-    var comment = Comment.lookup(cid);
-    assert(comment instanceof Comment);
-    comment.set({
-      // TODO(mack): Validate before incrementing count
-      count: comment.get('count') + 1,
-      // Removing attributes should not be strictly necessary, since
-      // we're just taking children of element when doing .html() in
-      // render
-      $text: $row.clone(), //.removeAttr('data-reactid data-cid colspan'),
-    });
+    var $lineComments = $(evt.target).closest('.line-comments');
+    var commentCid = $lineComments.data('cid');
+    if (_.isString(commentCid)) {
+      // This is a reply to existing comment thread.
+      var comment = Comment.lookup(commentCid);
+      assert(comment instanceof Comment);
+      comment.set({
+        // TODO(mack): Validate before incrementing count
+        count: comment.get('count') + 1,
+        // Removing attributes should not be strictly necessary, since
+        // we're just taking children of element when doing .html() in
+        // render
+        $text: $lineComments.clone(),
+      });
+    } else {
+      // This is a new comment thread.
+      var index = $lineComments.index();
+      var $inlineComments = $lineComments.closest('.inline-comments');
+      var $associatedRow = $inlineComments.prev().children().eq(index);
+      var rowCid = $associatedRow.data('cid');
+      assert(_.isString(rowCid));
+      var row = Row.lookup(rowCid);
+      assert(row instanceof Row);
+      assert(!row.has('comment'));
+      row.set('comment', new Comment({
+        count: 1, // TODO(mack): Maybe actually fetch count from element
+        $text: $lineComments.clone(),
+      }));
+      //$inlineComments.remove();
+    }
     this.reRender();
   },
 
@@ -229,11 +244,11 @@ var FileDiffView = React.createClass({
     // It's necessary for now to get around bug (likely w/ react.js) where
     // when switching from side-by-side to inline, the text portion of some
     // of the comments disappear.
-    //var $parent = $(this.getDOMNode()).parent();
-    //React.unmountComponentAtNode($parent.get(0));
-    //var fileDiffView = <FileDiffView fileDiff={this.props.fileDiff} diffViewer={this.props.diffViewer} />;
-    //React.renderComponent(fileDiffView, $parent.get(0));
-    this.setState({ random: Math.random() });
+    var $parent = $(this.getDOMNode()).parent();
+    React.unmountComponentAtNode($parent.get(0));
+    var fileDiffView = <FileDiffView fileDiff={this.props.fileDiff} diffViewer={this.props.diffViewer} />;
+    React.renderComponent(fileDiffView, $parent.get(0));
+    //this.setState({ random: Math.random() });
   },
 
   render: function() {
@@ -371,7 +386,8 @@ var FileDiffView = React.createClass({
       <tr className={'file-diff-line ' + rowClass}>
         {this.renderLineNumberCell(deletedLineNum)}
         {this.renderLineNumberCell(insertedLineNum)}
-        <td className="diff-line-code" data-position={_.isInt(row.get('position')) || ''}>
+        <td className="diff-line-code" data-cid={row.cid}
+            data-position={_.isInt(row.get('position')) || ''}>
           {commentIcon}
           <pre className="diff-line-pre" dangerouslySetInnerHTML={{ __html: row.get('text') }}>
           </pre>
@@ -514,8 +530,8 @@ var FileDiffView = React.createClass({
   sideBySideRenderCommentColumn: function(comment) {
     if (!comment) {
       return [
-        <td className="empty-cell"></td>,
-        <td className="empty-line"></td>,
+        <td className="empty-cell" colSpan="1"></td>,
+        <td className="empty-line" colSpan="1"></td>,
       ];
     } else {
       return [
@@ -544,12 +560,14 @@ var FileDiffView = React.createClass({
 
   sideBySideRenderCodeColumn: function(row) {
     if (!row) {
+      var rowCid = '';
       var rowClass = 'empty-line';
       var lineNum = {};
       var text = '';
       var position = '';
       var commentIcon = '';
     } else {
+      var rowCid = row.cid;
       if (row.isInsertedType()) {
         var rowClass = 'gi';
       } else if (row.isDeletedType()) {
@@ -560,16 +578,21 @@ var FileDiffView = React.createClass({
       var text = row.get('text');
       var lineNum = row.get('lineNum').toJSON();
       var position = row.get('position');
-      var commentIcon = (
-        <b onClick={this.sideBySideClickAddComment}
-          className="add-line-comment octicon octicon-comment-add"
-          data-remote={row.commentUrl}></b>
-      );
+
+      if (row.has('commentUrl')) {
+        var commentIcon = (
+          <b onClick={this.sideBySideClickAddComment}
+              className="add-line-comment octicon octicon-comment-add"
+              data-remote={row.get('commentUrl')}></b>
+        );
+      } else {
+        var commentIcon = '';
+      }
     }
 
     var views = [
       this.renderLineNumberCell(lineNum),
-      <td className={'diff-line-code ' + rowClass} data-position={position}>
+      <td className={'diff-line-code ' + rowClass} data-cid={rowCid} data-position={position}>
         {commentIcon}
         <pre className="diff-line-pre" dangerouslySetInnerHTML={{ __html: text }}>
         </pre>
@@ -579,56 +602,32 @@ var FileDiffView = React.createClass({
   },
 
   sideBySideClickAddComment: function(evt) {
-    evt.preventDefault();
-    //$target = $(evt.target);
-    //window.setTimeout(function() {
-    //  var rows = this.state.rows;
+    $target = $(evt.target);
+    setTimeout(function() {
+      var $clickedCell = $target.closest('.diff-line-code');
+      var index = $clickedCell.index();
+      var $commentRow = $clickedCell.closest('.file-diff-line').next();
+      assert($commentRow.hasClass('inline-comments'));
 
-    //  var $thisLine = $target.closest('.diff-line-code');
-    //  var thisRowIdx = $thisLine.data('row-idx');
-    //  var thisRow = rows[thisRowIdx];
+      $commentRow.find('.comment-count').attr('colspan', 1);
+      $commentRow.find('.line-comments').attr('colspan', 1);
+      var $emptyCells = $(
+        '<td className="empty-cell" colSpan="1"></td>' +
+        '<td className="empty-line" colSpan="1"></td>'
+      );
 
-    //  if (thisRow.type === 'lineInsertion') {
-    //    var $otherLine = $target.closest('.diff-line-code').prev().prev();
-    //  } else {
-    //    var $otherLine = $target.closest('.diff-line-code').next().next();
-    //  }
-    //  var otherRowIdx = $otherLine.data('row-idx');
-    //  var otherRow = rows[otherRowIdx];
+      var rowCid = $clickedCell.data('cid');
+      assert(_.isString(rowCid));
+      var row = Row.lookup(rowCid);
 
-    //  var $row = $target.closest('.file-diff-line').next();
-
-    //  // TODO(mack): Handle side by side view where comment added to existing
-    //  // list of comments which could be on wrong side
-    //  var thisNextRow = rows[thisRowIdx + 1];
-    //  var otherNextRow = rows[otherRowIdx + 1];
-    //  if (thisNextRow && thisNextRow.type === 'comments') {
-    //    $row.removeClass('show-inline-comment-form');
-    //    var $element = thisNextRow.cells[0].$element;
-    //    $element.addClass('show-inline-comment-form');
-    //    $element.find('.js-comment-field').focus();
-    //    return;
-    //  } else if (otherNextRow && otherNextRow.type === 'comments') {
-    //    // TODO(mack): Give focus to textarea after re-render
-    //    $row.removeClass('show-inline-comment-form');
-    //    $row = $row.clone();
-    //    $row.addClass('show-inline-comment-form');
-    //    $row.find('.comment-holder').empty();
-    //    $row.find('input[name="position"]').val(thisRow.position)
-    //    if (thisRow.type === 'lineInsertion') {
-    //      $row.find('input[name="line"]').val(thisRow.cells[1].dataLineNum)
-    //    } else {
-    //      $row.find('input[name="line"]').val(thisRow.cells[0].dataLineNum)
-    //    }
-    //  }
-
-    //  $row.remove();
-    //  this.state.rows.splice(thisRowIdx + 1, 0, {
-    //    type: 'comments',
-    //    cells: [{ $element: $row }]
-    //  });
-    //  this.setState({ rows: this.state.rows });
-    //}.bind(this), 800);
+      assert(index === 1 || index === 3);
+      if (index === 1 && !row.isUnchangedType()) {
+        $commentRow.append($emptyCells);
+      } else {
+        $commentRow.prepend($emptyCells);
+      }
+      $commentRow.addClass('show');
+    }.bind(this), 800);
   },
 });
 
