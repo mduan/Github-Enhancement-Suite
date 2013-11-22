@@ -40,7 +40,7 @@ var Row = Backbone.Model.extend({
       type: 0,
       text: '',
       position: NaN,
-      commentUrl: '',
+      commentUrl: null,
       comment: null,
       lineNum: null,
     };
