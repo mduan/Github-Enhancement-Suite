@@ -67,7 +67,6 @@ var FileDiffView = React.createClass({
         count: 1, // TODO(mack): Maybe actually fetch count from element
         $text: $lineComments.clone(),
       }));
-      //$inlineComments.remove();
     }
     this.reRender();
   },
@@ -605,9 +604,14 @@ var FileDiffView = React.createClass({
     $target = $(evt.target);
     setTimeout(function() {
       var $clickedCell = $target.closest('.diff-line-code');
-      var index = $clickedCell.index();
       var $commentRow = $clickedCell.closest('.file-diff-line').next();
       assert($commentRow.hasClass('inline-comments'));
+
+      if ($commentRow.find('.empty-line').length) {
+        // Clicked on add comment icon for a row that already has comment
+        // form showing.
+        return;
+      }
 
       $commentRow.find('.comment-count').attr('colspan', 1);
       $commentRow.find('.line-comments').attr('colspan', 1);
@@ -620,6 +624,7 @@ var FileDiffView = React.createClass({
       assert(_.isString(rowCid));
       var row = Row.lookup(rowCid);
 
+      var index = $clickedCell.index();
       assert(index === 1 || index === 3);
       if (index === 1 && !row.isUnchangedType()) {
         $commentRow.append($emptyCells);
