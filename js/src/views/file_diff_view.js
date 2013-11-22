@@ -572,6 +572,7 @@ var FileDiffView = React.createClass({
       } else if (row.isDeletedType()) {
         var rowClass = 'gd';
       } else {
+        var rowClass = '';
         assert(row.isUnchangedType());
       }
       var text = row.get('text');
