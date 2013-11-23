@@ -626,8 +626,8 @@ var FileDiffView = React.createClass({
       $commentRow.find('.comment-count').attr('colspan', 1);
       $commentRow.find('.line-comments').attr('colspan', 1);
       var $emptyCells = $(
-        '<td className="empty-cell" colSpan="1"></td>' +
-        '<td className="empty-line" colSpan="1"></td>'
+        '<td class="empty-cell" colspan="1"></td>' +
+        '<td class="empty-line" colspan="1"></td>'
       );
 
       var rowCid = $clickedCell.data('cid');
