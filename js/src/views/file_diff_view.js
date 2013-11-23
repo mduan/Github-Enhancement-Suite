@@ -275,7 +275,9 @@ var FileDiffView = React.createClass({
           <span className="octicon octicon-comment"></span>
           {' ' + comment.get('count') + ' '}
         </td>
-        <td className="js-line-comments line-comments" colSpan="1" data-cid={comment.cid}
+        <td className={'js-line-comments line-comments' +
+            ((comment.get('showForm') ? ' show-form' : ''))}
+            colSpan="1" data-cid={comment.cid}
             dangerouslySetInnerHTML={{ __html: comment.get('$text').html() }}>
         </td>
       </tr>
@@ -488,7 +490,9 @@ var FileDiffView = React.createClass({
           <span className="octicon octicon-comment"></span>
           {' ' + comment.get('count') + ' '}
         </td>,
-        <td className="js-line-comments line-comments" colSpan="1" data-cid={comment.cid}
+        <td className={'js-line-comments line-comments' +
+            ((comment.get('showForm') ? ' show-form' : ''))}
+            colSpan="1" data-cid={comment.cid}
             dangerouslySetInnerHTML={{ __html: comment.get('$text').html() }}>
         </td>,
       ];
@@ -551,6 +555,8 @@ var FileDiffView = React.createClass({
     return views;
   },
 
+  // TODO(mack): Need to add onClickCloseCommentForm that will clear
+  // showForm flag on Comment model.
   sideBySideOnClickAddComment: function(evt) {
     $target = $(evt.target);
     setTimeout(function() {
@@ -558,34 +564,96 @@ var FileDiffView = React.createClass({
       var $commentRow = $clickedCell.closest('.file-diff-line').next();
       assert($commentRow.hasClass('inline-comments'));
 
-      if ($commentRow.find('.empty-line').length) {
-        // Clicked on add comment icon for a row that already has comment
-        // form showing.
-        return;
-      }
-
-      $commentRow.find('.comment-count').attr('colspan', 1);
-      $commentRow.find('.line-comments').attr('colspan', 1);
-      var $emptyCells = $(
-        '<td class="empty-cell" colspan="1"></td>' +
-        '<td class="empty-line" colspan="1"></td>'
-      );
+      // TODO(mack): Don't use same show-inline-comment-form class for both
+      // left and right comment views
+      var clickedIndex = $clickedCell.index();
+      assert(clickedIndex === 1 || clickedIndex == 3);
 
       var rowCid = $clickedCell.data('cid');
       assert(_.isString(rowCid));
       var row = Row.lookup(rowCid);
+      assert(row instanceof Row);
 
-      var index = $clickedCell.index();
-      assert(index === 1 || index === 3);
-      if (index === 1 || row.isUnchangedType()) {
-        $commentRow.append($emptyCells);
+      if (clickedIndex === 1) {
+        var otherRowCid = $clickedCell.next().next().data('cid');
       } else {
-        $commentRow.prepend($emptyCells);
+        var otherRowCid = $clickedCell.prev().prev().data('cid');
+      }
+      if (otherRowCid && _.isString(otherRowCid)) {
+        var otherRow = Row.lookup(otherRowCid);
+        assert(otherRow instanceof Row);
+      }
+      if (row.isUnchangedType()) {
+        assert(otherRow);
       }
 
-      $commentRow.addClass('show');
-      $commentRow.find('.line-comments textarea').focus();
+      if ($commentRow.find('.line-comments').length > 1) {
+        assert($commentRow.find('.line-comments').length === 2);
+        assert(row.has('comment'));
+        row.get('comment').set('showForm', true);
 
+        this.props.fileDiff.trigger('change');
+        return;
+      }
+
+      if ($commentRow.find('.empty-line').length) {
+        assert($commentRow.find('.line-comments').length === 1);
+
+        if (row.isUnchangedType()) {
+          assert(otherRow);
+          if (clickedIndex === 1) {
+            row.get('comment').set('showForm', true);
+          } else {
+            otherRow.get('comment').set('showForm', true);
+          }
+          this.props.fileDiff.trigger('change');
+          return;
+        }
+
+        // Clicked on add comment icon for a row that already has comment
+        // form showing.
+        var commentIndex = $commentRow.find('.line-comments').index();
+        assert(commentIndex === 1 || commentIndex == 3);
+
+        if (commentIndex === clickedIndex) {
+          this.props.fileDiff.trigger('change');
+          return;
+        }
+
+        // Both rows should exist in this case, and github automatically
+        // added the comment form to the existing comment box, but this
+        // is the wrong column.
+        row.set('comment', new Comment({
+          $text: $commentRow.find('.line-comments').clone().removeAttr('data-reactid'),
+          count: 0,
+          showForm: true,
+        }));
+
+        this.props.fileDiff.trigger('change');
+
+        return;
+      }
+
+      // First time clicking add comment on this row.
+      if (row.isUnchangedType() && clickedIndex === 3) {
+        assert(!otherRow.has('comment'));
+        otherRow.set('comment', new Comment({
+          $text: $commentRow.find('.line-comments').clone().removeAttr('data-reactid'),
+          count: 0,
+          showForm: true,
+        }));
+        this.props.fileDiff.trigger('change');
+        return;
+      }
+
+      assert(!row.has('comment'));
+      row.set('comment', new Comment({
+        $text: $commentRow.find('.line-comments').clone().removeAttr('data-reactid'),
+        count: 0,
+        showForm: true,
+      }));
+
+      this.props.fileDiff.trigger('change');
     }.bind(this), 800);
   },
 });

@@ -67,6 +67,22 @@
   display: none !important;
 }
 
+tr.inline-comments .line-comments:not(.show-form) .inline-comment-form {
+  display: none !important;
+}
+
+tr.inline-comments .line-comments:not(.show-form) .show-inline-comment-form {
+  display: block !important;
+}
+
+tr.inline-comments .line-comments.show-form .inline-comment-form {
+  display: block !important;
+}
+
+tr.inline-comments .line-comments.show-form .show-inline-comment-form {
+  display: none !important;
+}
+
 .inline-comments .placeholder {
   background-color: white;
 }
