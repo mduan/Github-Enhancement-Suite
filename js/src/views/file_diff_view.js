@@ -214,36 +214,6 @@ var FileDiffView = React.createClass({
     );
   },
 
-  /**
-   * Following are functions that dispatch to inline or side by side
-   */
-
-  componentWillUpdate: function(nextProps, nextState) {
-    //this.state.rows.forEach(function(row) {
-    //  if (row.type !== 'comments') {
-    //    return;
-    //  }
-
-    //  // The code below might be the key to getting comments working during
-    //  // update()
-    //  try {
-    //    $(row.newView.getDOMNode());
-    //    row.view = row.newView;
-    //  } catch (ex) {
-    //    debugger;
-    //  }
-    //  var $row = $(row.view.getDOMNode());
-
-    //  var $countElement = $row.find('.comment-count').clone();
-    //  $countElement.find('*').addBack().removeAttr('data-reactid');
-    //  row.cells[0].$countElement = $countElement;
-
-    //  var $commentsElement = $row.find('.line-comments').clone();
-    //  $commentsElement.find('*').addBack().removeAttr('data-reactid');
-    //  row.cells[0].$commentsElement = $commentsElement;
-    //});
-  },
-
   reRender: function() {
     // TODO(mack): Properly have the view update rather than using this hack.
     // It's necessary for now to get around bug (likely w/ react.js) where
