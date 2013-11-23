@@ -391,9 +391,12 @@ var FileDiffView = React.createClass({
       <tr className={'file-diff-line ' + rowClass}>
         {this.renderLineNumberCell(deletedLineNum)}
         {this.renderLineNumberCell(insertedLineNum)}
-        // For an unchanged row, we are using cid of the left column. This is
-        // important, because this is the column that will need to be accessed
-        // to store an added comment.
+        {
+        /* For an unchanged row, we are using cid of the left column. This is
+         * important, because this is the column that will need to be accessed
+         * to store an added comment.
+         */
+        }
         <td className="diff-line-code" data-cid={row.cid}
             data-position={_.isInt(row.get('position')) || ''}>
           {commentIcon}
