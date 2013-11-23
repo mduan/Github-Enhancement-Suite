@@ -418,7 +418,9 @@ var FileDiffView = React.createClass({
       var $clickedCell = $target.closest('.diff-line-code');
       var $commentRow = $clickedCell.closest('.file-diff-line').next();
       assert($commentRow.hasClass('inline-comments'));
+
       $commentRow.addClass('show');
+      $commentRow.find('.line-comments textarea').focus();
     }.bind(this), 800);
   },
 
@@ -641,7 +643,10 @@ var FileDiffView = React.createClass({
       } else {
         $commentRow.prepend($emptyCells);
       }
+
       $commentRow.addClass('show');
+      $commentRow.find('.line-comments textarea').focus();
+
     }.bind(this), 800);
   },
 });
