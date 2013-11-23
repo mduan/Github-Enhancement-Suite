@@ -77,7 +77,7 @@ var FileDiffView = React.createClass({
     this.reRender();
   },
 
-  clickShowLines: function(prevRowGroup, nextRowGroup, evt, currTargetId) {
+  onClickShowLines: function(prevRowGroup, nextRowGroup, evt, currTargetId) {
     var numLines = this.props.diffViewer.get('numLinesToShow');
     // TODO(mack): See if there's a less hacky way to get the real target.
     var $target = $('[data-reactid="' + currTargetId + '"]');
@@ -119,26 +119,23 @@ var FileDiffView = React.createClass({
     var numLines = this.props.fileDiff.get('numLines');
     var rangeInfo = RowGroup.getMissingRangeInfo(
         prevRowGroup, nextRowGroup, numLines);
+    var pos = rangeInfo.position;
 
-    var clickShowLines = this.clickShowLines.bind(
+    // TODO(mack): Store prev/next row groups cids in DOM
+    var clickShowLines = this.onClickShowLines.bind(
         this, prevRowGroup, nextRowGroup);
     var links = [];
-    if (rangeInfo.position === 'last' && rangeInfo.length < 0) {
-      var showAllLink = (
-        <a onClick={clickShowLines}
-            className="showAll" href="#">
-          Show all remaining lines
-        </a>
-      );
-    } else {
-      var showAllLink = (
-        <a onClick={clickShowLines}
-            className="showAll" href="#">
-          Show all {rangeInfo.length} remaining lines
-        </a>
-      );
-    }
 
+    if (pos === 'last') {
+      var lengthKnown = _.isInt(rangeInfo.length);
+      assert(lengthKnown === _.isInt(numLines));
+    }
+    var showAllLink = (
+      <a onClick={clickShowLines}
+          className="showAll" href="#">
+        Show all {(pos === 'last' && !lengthKnown) ? '' : rangeInfo.length}remaining lines
+      </a>
+    );
     links.push(showAllLink);
 
     var numLinesToShow = this.props.diffViewer.get('numLinesToShow');
@@ -148,53 +145,22 @@ var FileDiffView = React.createClass({
       return links;
     }
 
-    if (rangeInfo.position === 'last') {
-      var showAboveLink = [
-        <a onClick={clickShowLines}
-            className="showAbove" href="#">
-          ▲ Show {numLinesToShow} lines
-        </a>,
-        <span className="dot">•</span>
-      ];
-      var showBelowLink = [
-        <span className="dot">•</span>,
-        <a onClick={clickShowLines}
-            className="showBelow" href="#">
-          Show last {numLinesToShow} lines
-        </a>
-      ];
-
-    } else if (rangeInfo.position === 'first') {
-      var showAboveLink = [
-        <a onClick={clickShowLines}
-            className="showAbove" href="#">
-          Show first {numLinesToShow} lines
-        </a>,
-        <span className="dot">•</span>
-      ];
-      var showBelowLink = [
-        <span className="dot">•</span>,
-        <a onClick={clickShowLines}
-            className="showBelow" href="#">
-          ▼ Show {numLinesToShow} lines
-        </a>
-      ];
-    } else {
-      var showAboveLink = [
-        <a onClick={clickShowLines}
-            className="showAbove" href="#">
-          ▲ Show {numLinesToShow} lines
-        </a>,
-        <span className="dot">•</span>
-      ];
-      var showBelowLink = [
-        <span className="dot">•</span>,
-        <a onClick={clickShowLines}
-            className="showBelow" href="#">
-          ▼ Show {numLinesToShow} lines
-        </a>
-      ];
-    }
+    var showAboveLink = [
+      <a onClick={clickShowLines}
+          className="showAbove" href="#">
+        {((pos === 'first') ? 'Show first' :  '▲ Show') +
+          ' numLinesToShow} lines'}
+      </a>,
+      <span className="dot">•</span>
+    ];
+    var showBelowLink = [
+      <span className="dot">•</span>,
+      <a onClick={clickShowLines}
+          className="showBelow" href="#">
+        {((pos === 'last') ? 'Show last' : '▼ Show')  +
+          ' {numLinesToShow} lines'}
+      </a>
+    ];
 
     links = showAboveLink.concat(links);
     links = links.concat(showBelowLink);

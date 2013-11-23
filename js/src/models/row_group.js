@@ -98,7 +98,7 @@ RowGroup.getMissingRangeInfo = function(prevRowGroup, nextRowGroup, numLines) {
 
     var deletedIdx = deletedRange[1];
     var insertedIdx = insertedRange[1];
-    var length = _.isInt(numLines) ? numLines - insertedIdx : -1;
+    var length = _.isInt(numLines) ? numLines - insertedIdx : NaN;
   } else {
     position = 'middle';
     var prevDeletedRange = prevRowGroup.getDeletedRange();
