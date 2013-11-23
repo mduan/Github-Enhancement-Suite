@@ -473,32 +473,32 @@ var FileDiffView = React.createClass({
   },
 
   sideBySideOnMouseDown: function(evt) {
-    //var selection = window.getSelection();
-    //if (selection.rangeCount > 0) {
-    //  selection.removeAllRanges();
-    //}
+    var selection = window.getSelection();
+    if (selection.rangeCount > 0) {
+      selection.removeAllRanges();
+    }
 
-    //var $target = $(evt.target);
-    //if (!$target.hasClass('diff-line-code')) {
-    //  $target = $target.closest('.diff-line-code');
-    //}
+    var $target = $(evt.target);
+    if (!$target.hasClass('diff-line-code')) {
+      $target = $target.closest('.diff-line-code');
+    }
 
-    //if (!$target.hasClass('diff-line-code')) {
-    //  $(evt.target).closest('.file-diff')
-    //    .removeClass('unselectableInsertion')
-    //    .removeClass('unselectableDeletion');
-    //  return;
-    //}
+    if (!$target.hasClass('diff-line-code')) {
+      $(evt.target).closest('.file-diff')
+        .removeClass('unselectableInsertion')
+        .removeClass('unselectableDeletion');
+      return;
+    }
 
-    //if ($target.index() === 1) {
-    //  $target.closest('.file-diff')
-    //    .addClass('unselectableInsertion')
-    //    .removeClass('unselectableDeletion');
-    //} else /* index == 3 */ {
-    //  $target.closest('.file-diff')
-    //    .addClass('unselectableDeletion')
-    //    .removeClass('unselectableInsertion');
-    //}
+    if ($target.index() === 1) {
+      $target.closest('.file-diff')
+        .addClass('unselectableInsertion')
+        .removeClass('unselectableDeletion');
+    } else /* index == 3 */ {
+      $target.closest('.file-diff')
+        .addClass('unselectableDeletion')
+        .removeClass('unselectableInsertion');
+    }
   },
 
   sideBySideRenderShowLines: function(prevRowGroup, nextRowGroup) {
