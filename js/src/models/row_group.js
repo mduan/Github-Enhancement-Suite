@@ -37,12 +37,12 @@ var RowGroup = Backbone.Model.extend({
 
   addDeletedRow: function(row) {
     this.validateRow(row);
-    this.get('deletedRows').add(row, 'deleted');
+    this.get('deletedRows').add(row);
   },
 
   addInsertedRow: function(row) {
     this.validateRow(row);
-    this.get('insertedRows').add(row, 'inserted');
+    this.get('insertedRows').add(row);
   },
 
   getDeletedRange: function() {

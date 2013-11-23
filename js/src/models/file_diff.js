@@ -163,7 +163,9 @@ FileDiff.createFileDiff = function($fileDiff) {
       if (prevRow1) {
         prevRow1.set('comment', comment);
       }
-      if (prevRow2) {
+      if (prevRow2 && !prevRow2.isUnchangedType()) {
+        // For unchanged row, the comment will only be stored in the left column
+        // since that is the column that will end up displaying the column.
         prevRow2.set('comment', comment);
       }
     }

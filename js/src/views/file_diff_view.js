@@ -54,10 +54,14 @@ var FileDiffView = React.createClass({
         $text: $lineComments.clone(),
       });
     } else {
-      // This is a new comment thread.
-      var index = $lineComments.index();
       var $inlineComments = $lineComments.closest('.inline-comments');
-      var $associatedRow = $inlineComments.prev().children().eq(index);
+      if (this.props.diffViewer.get('sideBySide')) {
+        // This is a new comment thread.
+        var index = $lineComments.index();
+        var $associatedRow = $inlineComments.prev().children().eq(index);
+      } else {
+        var $associatedRow = $inlineComments.prev().children().eq(2);
+      }
       var rowCid = $associatedRow.data('cid');
       assert(_.isString(rowCid));
       var row = Row.lookup(rowCid);
@@ -68,6 +72,8 @@ var FileDiffView = React.createClass({
         $text: $lineComments.clone(),
       }));
     }
+    // TODO(mack): Should propagate model changes to event fires, rather than
+    // manually triggering re-render
     this.reRender();
   },
 
@@ -385,6 +391,9 @@ var FileDiffView = React.createClass({
       <tr className={'file-diff-line ' + rowClass}>
         {this.renderLineNumberCell(deletedLineNum)}
         {this.renderLineNumberCell(insertedLineNum)}
+        // For an unchanged row, we are using cid of the left column. This is
+        // important, because this is the column that will need to be accessed
+        // to store an added comment.
         <td className="diff-line-code" data-cid={row.cid}
             data-position={_.isInt(row.get('position')) || ''}>
           {commentIcon}
@@ -404,8 +413,13 @@ var FileDiffView = React.createClass({
   },
 
   inlineClickAddComment: function(evt) {
-    console.warn('TODO');
-    evt.preventDefault();
+    var $target = $(evt.target);
+    setTimeout(function() {
+      var $clickedCell = $target.closest('.diff-line-code');
+      var $commentRow = $clickedCell.closest('.file-diff-line').next();
+      assert($commentRow.hasClass('inline-comments'));
+      $commentRow.addClass('show');
+    }.bind(this), 800);
   },
 
   /**
@@ -500,19 +514,14 @@ var FileDiffView = React.createClass({
     assert(deletedRow || insertedRow);
 
     if (deletedRow && deletedRow.has('comment')) {
-      if (deletedRow.isDeletedType()) {
-        var deletedCommentViews = this.sideBySideRenderCommentColumn(
-            deletedRow.get('comment'));
-      } else {
-        // For unchanged row, comments will always be rendered on inserted side.
-        assert(insertedRow.has('comment') && insertedRow.isUnchangedType());
-        var deletedCommentViews = this.sideBySideRenderCommentColumn(null);
-      }
+      var deletedCommentViews = this.sideBySideRenderCommentColumn(
+          deletedRow.get('comment'));
     } else {
       var deletedCommentViews = this.sideBySideRenderCommentColumn(null);
     }
 
     if (insertedRow && insertedRow.has('comment')) {
+      assert(!insertedRow.isUnchangedType());
       var insertedCommentViews = this.sideBySideRenderCommentColumn(
           insertedRow.get('comment'));
     } else {
@@ -627,7 +636,7 @@ var FileDiffView = React.createClass({
 
       var index = $clickedCell.index();
       assert(index === 1 || index === 3);
-      if (index === 1 && !row.isUnchangedType()) {
+      if (index === 1 || row.isUnchangedType()) {
         $commentRow.append($emptyCells);
       } else {
         $commentRow.prepend($emptyCells);
