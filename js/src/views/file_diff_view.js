@@ -314,7 +314,7 @@ var FileDiffView = React.createClass({
     if (row.has('commentUrl')) {
       // TODO(mack): see if there's some way to use React to generate markup
       var commentIcon = (
-        <b onClick={this.inlineClickAddComment}
+        <b onClick={this.inlineOnClickAddComment}
             className="add-line-comment octicon octicon-comment-add"
             data-remote={row.get('commentUrl')}></b>
       );
@@ -351,7 +351,7 @@ var FileDiffView = React.createClass({
     return views;
   },
 
-  inlineClickAddComment: function(evt) {
+  inlineOnClickAddComment: function(evt) {
     var $target = $(evt.target);
     setTimeout(function() {
       var $clickedCell = $target.closest('.diff-line-code');
@@ -531,7 +531,7 @@ var FileDiffView = React.createClass({
 
       if (row.has('commentUrl')) {
         var commentIcon = (
-          <b onClick={this.sideBySideClickAddComment}
+          <b onClick={this.sideBySideOnClickAddComment}
               className="add-line-comment octicon octicon-comment-add"
               data-remote={row.get('commentUrl')}></b>
         );
@@ -551,7 +551,7 @@ var FileDiffView = React.createClass({
     return views;
   },
 
-  sideBySideClickAddComment: function(evt) {
+  sideBySideOnClickAddComment: function(evt) {
     $target = $(evt.target);
     setTimeout(function() {
       var $clickedCell = $target.closest('.diff-line-code');
