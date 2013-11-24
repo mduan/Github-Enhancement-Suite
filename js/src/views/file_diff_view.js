@@ -165,7 +165,7 @@ var FileDiffView = React.createClass({
     var showAllLink = (
       <a onClick={clickShowLines}
           className="showAll" href="#">
-        Show all {(pos === 'last' && !lengthKnown) ? '' : rangeInfo.length}remaining lines
+        Show all {(pos === 'last' && !lengthKnown) ? '' : rangeInfo.length} remaining lines
       </a>
     );
     links.push(showAllLink);
@@ -180,17 +180,17 @@ var FileDiffView = React.createClass({
     var showAboveLink = [
       <a onClick={clickShowLines}
           className="showAbove" href="#">
-        {((pos === 'first') ? 'Show first' :  '▲ Show') +
-          ' numLinesToShow} lines'}
+        {((pos === 'first') ? 'Show first ' :  '▲ Show ') +
+          numLinesToShow + ' lines'}
       </a>,
-      <span className="dot">•</span>
+      <span className="dot"> • </span>
     ];
     var showBelowLink = [
-      <span className="dot">•</span>,
+      <span className="dot"> • </span>,
       <a onClick={clickShowLines}
           className="showBelow" href="#">
-        {((pos === 'last') ? 'Show last' : '▼ Show')  +
-          ' {numLinesToShow} lines'}
+        {((pos === 'last') ? 'Show last ' : '▼ Show ')  +
+          numLinesToShow + ' lines'}
       </a>
     ];
 
@@ -204,7 +204,7 @@ var FileDiffView = React.createClass({
       <td id={lineNum.htmlId}
           className={'diff-line-num linkable-line-number '
             + (_.isInt(lineNum.idx) ? '' : 'empty-cell')}
-          data-line-number={_.isInt(lineNum.dataNum) || ''}>
+          data-line-number={_.isInt(lineNum.dataNum) ? lineNum.dataNum : ''}>
         <span className="line-num-content">
           {(lineNum.idx + 1) || ''}
         </span>
@@ -334,7 +334,7 @@ var FileDiffView = React.createClass({
         htmlId: '',
         dataNum: NaN,
       };
-      var insertedLineNum = row.get('lineNum');
+      var insertedLineNum = row.get('lineNum').toJSON();
     } else {
       assert(row.isUnchangedType());
       // row2 represents the right side of unchanged row, which contains
