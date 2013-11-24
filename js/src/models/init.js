@@ -13,9 +13,17 @@ Backbone.Model.extend = function() {
     assert(object instanceof ExtendedModel);
     this._items[id] = object;
   };
-  ExtendedModel.lookup = function(id) {
+
+  ExtendedModel.find = function(id) {
     return this._items[id];
   };
+
+  ExtendedModel.get = function(id) {
+    var item = this._items[id];
+    assert(item instanceof ExtendedModel);
+    return item;
+  };
+
   ExtendedModel.remove = function(id) {
     assert(this.hasOwnProperty(id));
     delete this._items[id];

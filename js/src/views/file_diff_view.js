@@ -49,14 +49,12 @@ var FileDiffView = React.createClass({
     var commentCid = $lineComments.data('cid');
     if (_.isString(commentCid)) {
       // This is a reply to existing comment thread.
-      var comment = Comment.lookup(commentCid);
-      assert(comment instanceof Comment);
+      var comment = Comment.get(commentCid);
       comment.set({
-        // TODO(mack): Validate before incrementing count
         count: comment.get('count') + 1,
-        // Removing attributes should not be strictly necessary, since
-        // we're just taking children of element when doing .html() in
-        // render
+        // Removing attributes here (like data-reactid) is not necessary here,
+        // since we're just taking children of element when doing .html() in
+        // render().
         $text: $lineComments.clone(),
       });
     } else {
@@ -70,25 +68,21 @@ var FileDiffView = React.createClass({
       }
       var rowCid = $associatedRow.data('cid');
       assert(_.isString(rowCid));
-      var row = Row.lookup(rowCid);
-      assert(row instanceof Row);
+      var row = Row.get(rowCid);
       assert(!row.has('comment'));
       row.set('comment', new Comment({
         count: 1, // TODO(mack): Maybe actually fetch count from element
         $text: $lineComments.clone(),
       }));
     }
-    // TODO(mack): Should propagate model changes to event fires, rather than
-    // manually triggering re-render
-    this.reRender();
+    this.props.fileDiff.trigger('change');
   },
 
   onClickShowForm: function(evt) {
     var $lineComments = $(evt.target).closest('.line-comments');
     var cid = $lineComments.data('cid');
     assert(cid);
-    var comment = Comment.lookup(cid);
-    assert(comment instanceof Comment);
+    var comment = Comment.get(cid);
     comment.set('showForm', true);
     this.props.fileDiff.trigger('change');
   },
@@ -97,8 +91,7 @@ var FileDiffView = React.createClass({
     var $lineComments = $(evt.target).closest('.line-comments');
     var cid = $lineComments.data('cid');
     assert(cid);
-    var comment = Comment.lookup(cid);
-    assert(comment instanceof Comment);
+    var comment = Comment.get(cid);
     assert(_.isInt(comment.get('count')));
     if (!comment.get('count')) {
       assert(comment.get('row').get('comment') === comment);
@@ -396,16 +389,14 @@ var FileDiffView = React.createClass({
       var commentCid = $inlineComments.data('cid');
       if (commentCid) {
         assert(commentCid);
-        var comment = Comment.lookup(commentCid);
-        assert(comment instanceof Comment);
+        var comment = Comment.get(commentCid);
         row.get('comment').set({
           showForm: true,
         });
       } else {
         var rowCid = $clickedCell.data('cid');
         assert(rowCid);
-        var row = Row.lookup(rowCid);
-        assert(row instanceof Row);
+        var row = Row.get(rowCid);
         row.set('comment', new Comment({
           count: 0,
           $text: $inlineComments.clone(),
@@ -625,8 +616,7 @@ var FileDiffView = React.createClass({
 
       var rowCid = $clickedCell.data('cid');
       assert(_.isString(rowCid));
-      var row = Row.lookup(rowCid);
-      assert(row instanceof Row);
+      var row = Row.get(rowCid);
 
       if (clickedIndex === 1) {
         var otherRowCid = $clickedCell.next().next().data('cid');
@@ -634,8 +624,7 @@ var FileDiffView = React.createClass({
         var otherRowCid = $clickedCell.prev().prev().data('cid');
       }
       if (otherRowCid && _.isString(otherRowCid)) {
-        var otherRow = Row.lookup(otherRowCid);
-        assert(otherRow instanceof Row);
+        var otherRow = Row.get(otherRowCid);
       }
       if (row.isUnchangedType()) {
         assert(otherRow);
