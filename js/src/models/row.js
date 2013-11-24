@@ -25,6 +25,7 @@ var Comment = Backbone.Model.extend({
       $text: null,
       count: NaN,
       showForm: false,
+      row: null,
     };
   },
 
@@ -33,6 +34,7 @@ var Comment = Backbone.Model.extend({
     assert(this.get('text') instanceof jQuery);
     assert(_.isInt(this.get('count')));
     assert(_.isBoolean(this.get('showForm')));
+    assert(this.get('row') instanceof Row);
   },
 });
 

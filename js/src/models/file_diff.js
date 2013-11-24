@@ -156,16 +156,25 @@ FileDiff.createFileDiff = function($fileDiff) {
       assert($row.prev().hasClass('file-diff-line'));
       // TODO(mack): Consider creating JSX representing element rather than
       // cloning
-      var comment = new Comment({
-        count: parseInt($row.find('.comment-count').text(), 10),
-        $text: $row.find('.line-comments').clone(),
-      });
+      // TODO(mack): Set the row on comment when doing row.set('comment', comment);
       if (prevRow1) {
+        var comment = new Comment({
+          count: parseInt($row.find('.comment-count').text(), 10),
+          $text: $row.find('.line-comments').clone(),
+          showForm: false,
+          row: prevRow1,
+        });
         prevRow1.set('comment', comment);
       }
       if (prevRow2 && !prevRow2.isUnchangedType()) {
         // For unchanged row, the comment will only be stored in the left column
         // since that is the column that will end up displaying the column.
+        var comment = new Comment({
+          count: parseInt($row.find('.comment-count').text(), 10),
+          $text: $row.find('.line-comments').clone(),
+          showForm: false,
+          row: prevRow2,
+        });
         prevRow2.set('comment', comment);
       }
     }

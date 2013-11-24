@@ -30,7 +30,13 @@ var FileDiffView = React.createClass({
     // TODO(mack): Think of a cleaner way to do this.
     $(this.getDOMNode()).on(
       'click', '.js-inline-comment-form button[type=submit]',
-      _.deferBy.bind(null, this.clickComment, 1000));
+      _.deferBy.bind(null, this.onClickComment, 1000));
+
+    $(this.getDOMNode()).on(
+      'click', '.js-show-inline-comment-form', this.onClickShowForm);
+
+    $(this.getDOMNode()).on(
+      'click', '.js-hide-inline-comment-form', this.onClickHideForm);
   },
 
   componentWillUnmount: function() {
@@ -38,7 +44,7 @@ var FileDiffView = React.createClass({
     $(this.getDOMNode()).off();
   },
 
-  clickComment: function(evt) {
+  onClickComment: function(evt) {
     var $lineComments = $(evt.target).closest('.line-comments');
     var commentCid = $lineComments.data('cid');
     if (_.isString(commentCid)) {
@@ -75,6 +81,32 @@ var FileDiffView = React.createClass({
     // TODO(mack): Should propagate model changes to event fires, rather than
     // manually triggering re-render
     this.reRender();
+  },
+
+  onClickShowForm: function(evt) {
+    var $lineComments = $(evt.target).closest('.line-comments');
+    var cid = $lineComments.data('cid');
+    assert(cid);
+    var comment = Comment.lookup(cid);
+    assert(comment instanceof Comment);
+    comment.set('showForm', true);
+    this.props.fileDiff.trigger('change');
+  },
+
+  onClickHideForm: function(evt) {
+    var $lineComments = $(evt.target).closest('.line-comments');
+    var cid = $lineComments.data('cid');
+    assert(cid);
+    var comment = Comment.lookup(cid);
+    assert(comment instanceof Comment);
+    assert(_.isInt(comment.get('count')));
+    if (!comment.get('count')) {
+      assert(comment.get('row').get('comment') === comment);
+      comment.get('row').unset('comment');
+    } else {
+      comment.set('showForm', false);
+    }
+    this.props.fileDiff.trigger('change');
   },
 
   onClickShowLines: function(prevRowGroup, nextRowGroup, evt, currTargetId) {
@@ -357,11 +389,33 @@ var FileDiffView = React.createClass({
     var $target = $(evt.target);
     setTimeout(function() {
       var $clickedCell = $target.closest('.diff-line-code');
-      var $commentRow = $clickedCell.closest('.file-diff-line').next();
-      assert($commentRow.hasClass('inline-comments'));
+      var $inlineComments = $clickedCell.closest(
+        '.file-diff-line').next().find('.line-comments')
+      assert($inlineComments.length);
 
-      $commentRow.addClass('show');
-      $commentRow.find('.line-comments textarea').focus();
+      var commentCid = $inlineComments.data('cid');
+      if (commentCid) {
+        assert(commentCid);
+        var comment = Comment.lookup(commentCid);
+        assert(comment instanceof Comment);
+        row.get('comment').set({
+          showForm: true,
+        });
+      } else {
+        var rowCid = $clickedCell.data('cid');
+        assert(rowCid);
+        var row = Row.lookup(rowCid);
+        assert(row instanceof Row);
+        row.set('comment', new Comment({
+          count: 0,
+          $text: $inlineComments.clone(),
+          showForm: true,
+          row: row,
+        }));
+      }
+      this.props.fileDiff.trigger('change');
+
+      //$commentRow.find('.line-comments textarea').focus();
     }.bind(this), 800);
   },
 
@@ -627,6 +681,7 @@ var FileDiffView = React.createClass({
           $text: $commentRow.find('.line-comments').clone().removeAttr('data-reactid'),
           count: 0,
           showForm: true,
+          row: row,
         }));
 
         this.props.fileDiff.trigger('change');
@@ -641,6 +696,7 @@ var FileDiffView = React.createClass({
           $text: $commentRow.find('.line-comments').clone().removeAttr('data-reactid'),
           count: 0,
           showForm: true,
+          row: otherRow,
         }));
         this.props.fileDiff.trigger('change');
         return;
@@ -651,6 +707,7 @@ var FileDiffView = React.createClass({
         $text: $commentRow.find('.line-comments').clone().removeAttr('data-reactid'),
         count: 0,
         showForm: true,
+        row: row,
       }));
 
       this.props.fileDiff.trigger('change');
