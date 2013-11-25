@@ -154,3 +154,11 @@ tr.inline-comments .line-comments.show-form .show-inline-comment-form {
   user-select: none;
 }
 
+.sideBySide .file-diff.hide-line-numbers .diff-line-num:before {
+  content: "" !important;
+}
+
+.sideBySide .file-diff.hide-line-numbers .line-num-content {
+  display: inline;
+  visibility: visible;
+}
