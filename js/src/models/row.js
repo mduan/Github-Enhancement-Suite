@@ -31,7 +31,7 @@ var Comment = Backbone.Model.extend({
 
   initialize: function(params) {
     this._super('initialize', params);
-    assert(this.get('text') instanceof jQuery);
+    assert(this.get('$text') instanceof jQuery);
     assert(_.isInt(this.get('count')));
     assert(_.isBoolean(this.get('showForm')));
     assert(this.get('row') instanceof Row);
@@ -55,9 +55,12 @@ var Row = Backbone.Model.extend({
     assert(this.isValidType());
     assert(_.isString(this.get('text')));
     assert(_.isInt(this.get('position')) || _.isNaN(this.get('position')));
-    assert(_.isString(this.get('commentUrl')));
+    assert(!this.has('commentUrl') || _.isString(this.get('commentUrl')));
     assert(!this.has('comment') || this.get('comment') instanceof Comment);
     assert(this.get('lineNum') instanceof LineNum);
+
+    this.propagateChange('comment');
+    this.propagateChange('lineNum');
   },
 
   isValidType: function() {

@@ -24,7 +24,6 @@ var FileDiffView = React.createClass({
   componentDidMount: function() {
     var events = this.props.events = _.clone(Backbone.Events);
     events.listenTo(this.props.fileDiff, 'change', this.reRender);
-    events.listenTo(this.props.fileDiff.get('rowGroups'), 'add', this.reRender);
     events.listenTo(this.props.diffViewer, 'change', this.reRender);
 
     // TODO(mack): Think of a cleaner way to do this.
@@ -75,16 +74,13 @@ var FileDiffView = React.createClass({
         $text: $lineComments.clone(),
       }));
     }
-    this.props.fileDiff.trigger('change');
   },
 
   onClickShowForm: function(evt) {
     var $lineComments = $(evt.target).closest('.line-comments');
     var cid = $lineComments.data('cid');
     assert(cid);
-    var comment = Comment.get(cid);
-    comment.set('showForm', true);
-    this.props.fileDiff.trigger('change');
+    Comment.get(cid).set('showForm', true);
   },
 
   onClickHideForm: function(evt) {
@@ -99,7 +95,6 @@ var FileDiffView = React.createClass({
     } else {
       comment.set('showForm', false);
     }
-    this.props.fileDiff.trigger('change');
   },
 
   onClickShowLines: function(prevRowGroup, nextRowGroup, evt, currTargetId) {
@@ -404,7 +399,6 @@ var FileDiffView = React.createClass({
           row: row,
         }));
       }
-      this.props.fileDiff.trigger('change');
 
       //$commentRow.find('.line-comments textarea').focus();
     }.bind(this), 800);
@@ -632,10 +626,7 @@ var FileDiffView = React.createClass({
 
       if ($commentRow.find('.line-comments').length > 1) {
         assert($commentRow.find('.line-comments').length === 2);
-        assert(row.has('comment'));
         row.get('comment').set('showForm', true);
-
-        this.props.fileDiff.trigger('change');
         return;
       }
 
@@ -649,7 +640,6 @@ var FileDiffView = React.createClass({
           } else {
             otherRow.get('comment').set('showForm', true);
           }
-          this.props.fileDiff.trigger('change');
           return;
         }
 
@@ -659,7 +649,6 @@ var FileDiffView = React.createClass({
         assert(commentIndex === 1 || commentIndex == 3);
 
         if (commentIndex === clickedIndex) {
-          this.props.fileDiff.trigger('change');
           return;
         }
 
@@ -673,8 +662,6 @@ var FileDiffView = React.createClass({
           row: row,
         }));
 
-        this.props.fileDiff.trigger('change');
-
         return;
       }
 
@@ -687,7 +674,6 @@ var FileDiffView = React.createClass({
           showForm: true,
           row: otherRow,
         }));
-        this.props.fileDiff.trigger('change');
         return;
       }
 
@@ -699,7 +685,6 @@ var FileDiffView = React.createClass({
         row: row,
       }));
 
-      this.props.fileDiff.trigger('change');
     }.bind(this), 800);
   },
 });

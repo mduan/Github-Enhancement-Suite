@@ -20,7 +20,6 @@ $(document).ready(function() {
     $('.file-diff').each(function() {
       var $fileDiff = $(this);
       var fileDiff = FileDiff.createFileDiff($fileDiff, diffViewer);
-      diffViewer.get('fileDiffs').add(fileDiff);
 
       // // TODO(mack): Figure out how to do this cleanly
       $fileDiff.empty();

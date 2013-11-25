@@ -33,6 +33,8 @@ var RowGroup = Backbone.Model.extend({
     assert(this.isValidType());
     assert(this.get('deletedRows') instanceof Rows);
     assert(this.get('insertedRows') instanceof Rows);
+    this.propagateChange('deletedRows');
+    this.propagateChange('insertedRows');
   },
 
   addDeletedRow: function(row) {

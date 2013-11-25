@@ -29,9 +29,29 @@ Backbone.Model.extend = function() {
     delete this._items[id];
   };
 
+  var origInitialize = ExtendedModel.prototype.initialize;
   ExtendedModel.prototype.initialize = function(params) {
     this._super('initialize', params);
+    origInitialize.call(this, params);
     ExtendedModel.register(this.cid, this);
+  };
+
+  ExtendedModel.prototype._onChildChange = function(eventName) {
+    this.trigger('change');
+  };
+
+  ExtendedModel.prototype.propagateChange = function(field) {
+    if (this.has(field)) {
+      this.get(field).on('all', this._onChildChange, this);
+    }
+    this.on('change:' + field, function() {
+      if (this.has(field)) {
+        this.get(field).on('all', this._onChildChange, this);
+      }
+      if (this.previous(field)) {
+        this.previous(field).off('all', this._onChildChange);
+      }
+    }.bind(this));
   };
 
   return ExtendedModel;

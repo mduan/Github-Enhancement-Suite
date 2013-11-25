@@ -9,7 +9,6 @@ var DiffViewer = Backbone.Model.extend({
       sideBySide: false,
       wordWrap: false,
       numLinesToShow: 20,
-      fileDiffs: new FileDiffs(),
     };
   },
 
@@ -18,7 +17,6 @@ var DiffViewer = Backbone.Model.extend({
     assert(_.isBoolean(this.get('sideBySide')));
     assert(_.isBoolean(this.get('wordWrap')));
     assert(_.isInt(this.get('numLinesToShow')));
-    assert(this.get('fileDiffs') instanceof FileDiffs);
   },
 });
 
