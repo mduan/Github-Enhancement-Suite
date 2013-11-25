@@ -56,11 +56,17 @@ function getSetting(key) {
   });
 }
 
+// TODO(mack): Chrome's syncing internally runs the callback in an exception
+// handler, causing the stack ot be lost. For now, queue the callback to run
+// in different context avoid this, but should really find a better solution.
+// Also, doing the same thing in saveSettings().
 function getSettings(keys) {
   var deferred = new $.Deferred();
-  chrome.storage.sync.get(keys, function(settings) {
-    deferred.resolve(settings);
-  });
+  chrome.storage.sync.get(keys,
+    _.defer.bind(null, function(settings) {
+      deferred.resolve(settings);
+    })
+  );
   return deferred.promise();
 }
 
@@ -72,9 +78,11 @@ function saveSetting(key, value) {
 
 function saveSettings(settings) {
   var deferred = new $.Deferred();
-  chrome.storage.sync.set(settings, function() {
-    deferred.resolve();
-  });
+  chrome.storage.sync.set(settings,
+    _.defer.bind(null, function() {
+      deferred.resolve();
+    })
+  );
   return deferred.promise();
 }
 

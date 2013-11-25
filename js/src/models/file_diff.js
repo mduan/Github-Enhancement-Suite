@@ -14,7 +14,8 @@ var FileDiffs = Backbone.Collection.extend({
 var FileDiff = Backbone.Model.extend({
   defaults: function() {
     return {
-      rawUrl: '',
+      id: null,
+      rawUrl: null,
       rowGroups: new RowGroups(),
     };
   },
@@ -23,6 +24,7 @@ var FileDiff = Backbone.Model.extend({
     this._super('initialize', params);
     assert(this.get('rawUrl') && _.isString(this.get('rawUrl')));
     assert(this.get('rowGroups') instanceof RowGroups);
+    assert(this.get('id') && _.isString(this.get('id')));
     this.propagateChange('rowGroups');
   },
 
@@ -68,15 +70,16 @@ var FileDiff = Backbone.Model.extend({
  * Where deletions and insertions are lists of 0 or more lines
  *
  */
-FileDiff.createFileDiff = function($fileDiff) {
+FileDiff.createFileDiff = function($file) {
 
-  var $file = $fileDiff.closest('.file');
+  var $fileDiff = $file.find('.file-diff');
   var $viewFileButton = $file.find('.meta .actions .minibutton');
   var blobUrl = $viewFileButton.attr('href');
   // TODO(mack): Be careful of '/blob/' as user or repo name
   var rawUrl = blobUrl.replace(/^\/(.*?)\/blob\/(.*)$/,
       'https://github.com/$1/raw/$2');
   var fileDiff = new FileDiff({
+    id: $file.attr('id'),
     rawUrl: rawUrl,
   });
 

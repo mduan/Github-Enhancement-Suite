@@ -7,29 +7,38 @@ $(document).ready(function() {
   var CheckboxesView = Globals.Views.CheckboxesView;
   var getSettings = Globals.Utils.getSettings;
 
+  function renderFileDiffs(diffViewer) {
+    $('.file').each(function() {
+      var $file = $(this);
+      var fileDiff = FileDiff.createFileDiff($file);
+
+      var $fileDiff = $file.find('.file-diff');
+      $fileDiff.empty();
+      var fileDiffView = <FileDiffView fileDiff={fileDiff} diffViewer={diffViewer} />;
+      React.renderComponent(fileDiffView, $fileDiff.get(0));
+    });
+  }
+
+  function renderCheckboxes(diffViewer) {
+    var checkboxesView = <CheckboxesView diffViewer={diffViewer} />
+    var $checkboxesContainer = $('<span id="settingCheckboxesContainer"/>').
+        appendTo($('#toc .explain'));
+    React.renderComponent(checkboxesView, $checkboxesContainer.get(0));
+  }
+
+  function renderPage(diffViewer) {
+    renderFileDiffs(diffViewer);
+    renderCheckboxes(diffViewer);
+  }
+
   getSettings(['sideBySide', 'wordWrap']).then(function(settings) {
     var wordWrap = 'wordWrap' in settings ? settings.wordWrap : true;
     var sideBySide = 'sideBySide' in settings ? settings.sideBySide : true;
-
     var diffViewer = new DiffViewer({
       sideBySide: sideBySide,
       wordWrap: wordWrap,
       numLinesToShow: 20,
     });
-
-    $('.file-diff').each(function() {
-      var $fileDiff = $(this);
-      var fileDiff = FileDiff.createFileDiff($fileDiff, diffViewer);
-
-      // // TODO(mack): Figure out how to do this cleanly
-      $fileDiff.empty();
-
-      var fileDiffView = <FileDiffView fileDiff={fileDiff} diffViewer={diffViewer} />;
-      React.renderComponent(fileDiffView, $fileDiff.get(0));
-    });
-
-    var checkboxesView = <CheckboxesView diffViewer={diffViewer} />
-    var $checkboxesContainer = $('<span />').appendTo($('#toc .explain'));
-    React.renderComponent(checkboxesView, $checkboxesContainer.get(0));
+    renderPage(diffViewer);
   });
 });

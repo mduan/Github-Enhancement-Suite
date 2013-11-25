@@ -31,7 +31,6 @@ Backbone.Model.extend = function() {
 
   var origInitialize = ExtendedModel.prototype.initialize;
   ExtendedModel.prototype.initialize = function(params) {
-    this._super('initialize', params);
     origInitialize.call(this, params);
     ExtendedModel.register(this.cid, this);
   };
