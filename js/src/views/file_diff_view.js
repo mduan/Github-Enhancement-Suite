@@ -181,7 +181,7 @@ var FileDiffView = React.createClass({
     var showAboveLink = [
       <a onClick={clickShowLines}
           className="showAbove" href="#">
-        {((pos === 'first') ? 'Show first ' :  '▲ Show ') +
+        {((pos === 'first') ? '▲ Show first ' :  '▲ Show ') +
           numLinesToShow + ' lines'}
       </a>,
       <span className="dot"> • </span>
@@ -190,7 +190,7 @@ var FileDiffView = React.createClass({
       <span className="dot"> • </span>,
       <a onClick={clickShowLines}
           className="showBelow" href="#">
-        {((pos === 'last') ? 'Show last ' : '▼ Show ')  +
+        {((pos === 'last') ? '▼ Show last ' : '▼ Show ')  +
           numLinesToShow + ' lines'}
       </a>
     ];
