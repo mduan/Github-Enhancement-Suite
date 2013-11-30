@@ -10,11 +10,18 @@ $(document).ready(function() {
   function renderFileDiffs(diffViewer) {
     $('.file').each(function() {
       var $file = $(this);
-      var fileDiff = FileDiff.createFileDiff($file);
 
       var $fileDiff = $file.find('.file-diff');
-      $fileDiff.empty();
+      if (!$fileDiff.length) {
+        // It's possible for there not to be a diff for this file. For
+        // example, creation of an empty file, or changes in a binary file.
+        return;
+      }
+
+      var fileDiff = FileDiff.createFileDiff($file);
       var fileDiffView = <FileDiffView fileDiff={fileDiff} diffViewer={diffViewer} />;
+
+      $fileDiff.empty();
       React.renderComponent(fileDiffView, $fileDiff.get(0));
     });
   }
