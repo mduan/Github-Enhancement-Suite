@@ -1,5 +1,10 @@
 .wordWrap .diff-line-pre {
-  white-space: normal;
+  white-space: pre-wrap;
+  word-wrap: word-break;
+  /* TODO(mack): word-wrap: word-break should work, but it's not, so add this
+   * for now. Doing it this way does have the undesirable effect that will
+   * word-wrap in the middle of words. Consider fixing this. */
+  word-break: break-all;
 }
 
 .wrapper .container.large {
