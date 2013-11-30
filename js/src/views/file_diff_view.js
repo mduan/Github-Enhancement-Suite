@@ -231,11 +231,26 @@ var FileDiffView = React.createClass({
     var rowViews = [];
     var prevRowGroup;
     this.props.fileDiff.get('rowGroups').each(function(rowGroup) {
-      var prevEndIdx = prevRowGroup ? prevRowGroup.getInsertedRange()[1] : 0;
+      var deletedRows = rowGroup.get('deletedRows');
+      var insertedRows = rowGroup.get('insertedRows');
 
-      var currBeginIdx = rowGroup.getInsertedRange()[0];
-      if (!_.isInt(currBeginIdx)) {
-        currBeginIdx = prevEndIdx;
+      var missingRange = false;
+      if (prevRowGroup) {
+        if (deletedRows.size() && prevRowGroup.get('deletedRows').size()) {
+          var prevEndIdx = prevRowGroup.getDeletedRange()[1];
+          var currBeginIdx = rowGroup.getDeletedRange()[0];
+        } else {
+          assert(insertedRows.size() && prevRowGroup.get('insertedRows').size());
+          var prevEndIdx = prevRowGroup.getInsertedRange()[1];
+          var currBeginIdx = rowGroup.getInsertedRange()[0];
+        }
+      } else {
+        var prevEndIdx = 0;
+        if (deletedRows.size()) {
+          var currBeginIdx = rowGroup.getDeletedRange()[0];
+        } else {
+          var currBeginIdx = rowGroup.getInsertedRange()[0];
+        }
       }
 
       if (currBeginIdx > prevEndIdx) {
@@ -245,8 +260,6 @@ var FileDiffView = React.createClass({
         assert(currBeginIdx === prevEndIdx);
       }
 
-      var deletedRows = rowGroup.get('deletedRows');
-      var insertedRows = rowGroup.get('insertedRows');
       if (rowGroup.isUnchangedType()) {
         assert(deletedRows.size() === insertedRows.size());
         var rowTuples = _.zip(deletedRows.models, insertedRows.models);
