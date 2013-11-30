@@ -35,6 +35,10 @@ var FileDiff = Backbone.Model.extend({
 
     var filePromise = $.get(this.get('rawUrl')).then(function(data) {
       var fileLines = data.split(/\r?\n/);
+      // TODO(mack): The raw text that's returned seems to include an extra
+      // empty line, which we need to remove. Need to verify this is always
+      // the case.
+      assert(fileLines.pop() === "");
       this.set('numLines', fileLines.length, { silent: true });
       return fileLines;
     }.bind(this));
@@ -46,18 +50,8 @@ var FileDiff = Backbone.Model.extend({
   // the file. This is useful for determining if we need to show any more
   // show remaining lines links
   hasLastRowGroup: function() {
-    if (this.get('numLines') === 0) {
-      return true;
-    }
-    var rowGroups = this.get('rowGroups').models;
-    for (var idx = rowGroups.length - 1; idx >= 0; --idx) {
-      var rowGroup  = rowGroups[idx];
-      var insertedRows = rowGroup.get('insertedRows');
-      if (!insertedRows.size()) {
-        continue;
-      }
-      return this.get('numLines') === insertedRows.getRange()[1];
-    }
+    assert(this.get('rowGroups').size());
+    return this.get('numLines') === this.get('rowGroups').last().getPrevInsertedIdx();
   },
 });
 

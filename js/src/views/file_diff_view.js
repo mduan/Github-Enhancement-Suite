@@ -105,6 +105,19 @@ var FileDiffView = React.createClass({
       var rangeInfo = RowGroup.getMissingRangeInfo(
         prevRowGroup, nextRowGroup, fileLines.length);
 
+      if (!rangeInfo.length) {
+        // Only clicking show lines at end of a file can result in a missing
+        // range info of length 0. This happens because we do not originally
+        // know the length of the file, and thus do not realize the end of
+        // diff being shown is actually the end of the file.
+        assert(rangeInfo.position === 'last');
+        // Trigger change so we can update view. For example, the number of
+        // lines for the last show lines row needs to be updated now that
+        // we know length of file.
+        this.props.fileDiff.trigger('change');
+        return;
+      }
+
       if ($target.hasClass('showAll') || rangeInfo.length <= numLines) {
         var showRange = {
           deletedIdx: rangeInfo.deletedIdx,
