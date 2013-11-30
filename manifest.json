@@ -3,6 +3,12 @@
   "version": "0.0.1",
   "description": "Improvements to diff viewer in Github",
   "manifest_version": 2,
+  "icons": {
+    "16": "img/icon16.png",
+    "48": "img/icon48.png",
+    "128": "img/icon128.png",
+    "256": "img/icon256.png"
+  },
   "background": {
     "scripts": ["js/build/background.js"],
     "matches": [
