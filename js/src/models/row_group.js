@@ -8,15 +8,36 @@ var assert = Globals.Utils.assert;
 var RowGroups = Backbone.Collection.extend({
   model: RowGroup,
 
+  add: function(model, options) {
+    // Currently not supporting adding array of models for simplicity
+    assert(model instanceof RowGroup);
+    if (this.size()) {
+      model.set('prev', this.last(), { silent: true });
+      this.last().set('next', model, { silent: true });
+    }
+    this._super('add', model, options);
+  },
+
   insertAfter: function(prevRowGroup, rowGroup) {
     if (!prevRowGroup) {
+      if (this.size()) {
+        model.set('next', this.first(), { silent: true });
+        this.first().set('prev', model, { silent: true });
+      }
       this.add(rowGroup, { at: 0 });
     } else {
       var index = this.indexOf(prevRowGroup);
       assert(index >= 0);
+      this.models[index].set('next', rowGroup, { silent: true });
+      rowGroup.set('prev', this.models[index], { silent: true });
+      if (index + 1 < this.size()) {
+        // There's another row group after.
+        this.models[index + 1].set('prev', rowGroup, { silent: true });
+        rowGroup.set('next', this.models[index + 1], { silent: true });
+      }
       this.add(rowGroup, { at: index + 1 });
     }
-  }
+  },
 });
 
 var RowGroup = Backbone.Model.extend({
@@ -74,6 +95,50 @@ var RowGroup = Backbone.Model.extend({
       assert(row.isDeletedType() || row.isInsertedType());
     }
   },
+
+  getPrevDeletedIdx: function(rowGroup) {
+    var rowGroup = this;
+    while (rowGroup) {
+      if (rowGroup.get('deletedRows').size()) {
+        return rowGroup.getDeletedRange()[1];
+      }
+      rowGroup = rowGroup.get('prev');
+    }
+    return 0;
+  },
+
+  getPrevInsertedIdx: function(rowGroup) {
+    var rowGroup = this;
+    while (rowGroup) {
+      if (rowGroup.get('insertedRows').size()) {
+        return rowGroup.getInsertedRange()[1];
+      }
+      rowGroup = rowGroup.get('prev');
+    }
+    return 0;
+  },
+
+  getNextDeletedIdx: function(rowGroup) {
+    var rowGroup = this;
+    while (rowGroup) {
+      if (rowGroup.get('deletedRows').size()) {
+        return rowGroup.getDeletedRange()[0];
+      }
+      rowGroup = rowGroup.get('next');
+    }
+    return NaN;
+  },
+
+  getNextInsertedIdx: function(rowGroup) {
+    var rowGroup = this;
+    while (rowGroup) {
+      if (rowGroup.get('insertedRows').size()) {
+        return rowGroup.getInsertedRange()[0];
+      }
+      rowGroup = rowGroup.get('next');
+    }
+    return NaN;
+  },
 });
 
 RowGroup.Type = {
@@ -81,38 +146,52 @@ RowGroup.Type = {
   CHANGED: 2,
 };
 
+
 RowGroup.getMissingRangeInfo = function(prevRowGroup, nextRowGroup, numLines) {
   assert(prevRowGroup || nextRowGroup);
 
   if (!prevRowGroup) {
     var position = 'first';
-    var deletedRange = nextRowGroup.getDeletedRange();
-    var insertedRange = nextRowGroup.getInsertedRange();
-    assert(deletedRange[0] === insertedRange[0]);
-
+    if (nextRowGroup.get('deletedRows').size() &&
+        nextRowGroup.get('insertedRows').size()) {
+      var deletedRange = nextRowGroup.getDeletedRange();
+      var insertedRange = nextRowGroup.getInsertedRange();
+      assert(deletedRange[0] === insertedRange[0]);
+      var length = deletedRange[0];
+    } else if (nextRowGroup.get('deletedRows').size()) {
+      var length = deletedRange[0];
+    } else {
+      assert(nextRowGroup.get('insertedRows').size());
+      var length = insertedRange[0];
+    }
     var deletedIdx = 0;
     var insertedIdx = 0;
-    var length = deletedRange[0];
   } else if (!nextRowGroup) {
     var position = 'last';
-    var deletedRange = prevRowGroup.getDeletedRange();
-    var insertedRange = prevRowGroup.getInsertedRange();
-
-    var deletedIdx = deletedRange[1];
-    var insertedIdx = insertedRange[1];
+    var deletedIdx = prevRowGroup.getPrevDeletedIdx();
+    var insertedIdx = prevRowGroup.getPrevInsertedIdx();
+    // numLines refers to number of lines in new (inserted) file, which
+    // is why we take difference with insertedidx to get length of
+    // the missing range.
     var length = _.isInt(numLines) ? numLines - insertedIdx : NaN;
   } else {
     position = 'middle';
-    var prevDeletedRange = prevRowGroup.getDeletedRange();
-    var prevInsertedRange = prevRowGroup.getInsertedRange();
-    var nextDeletedRange = nextRowGroup.getDeletedRange();
-    var nextInsertedRange = nextRowGroup.getInsertedRange();
-    assert((nextDeletedRange[0] - prevDeletedRange[1]) ===
-           (nextInsertedRange[0] - prevInsertedRange[1]));
+    var deletedIdx = prevRowGroup.getPrevDeletedIdx();
+    var insertedIdx = prevRowGroup.getPrevInsertedIdx();
 
-    var deletedIdx = prevDeletedRange[1];
-    var insertedIdx = prevInsertedRange[1];
-    var length = nextDeletedRange[0] - prevDeletedRange[1];
+    var nextDeletedIdx = nextRowGroup.getNextDeletedIdx();
+    var nextInsertedIdx = nextRowGroup.getNextInsertedIdx();
+    if (_.isInt(nextDeletedIdx) && _.isInt(nextInsertedIdx)) {
+      assert((nextDeletedIdx - deletedIdx) ===
+             (nextInsertedIdx - insertedIdx));
+    }
+
+    if (_.isInt(nextDeletedIdx)) {
+      var length = nextDeletedIdx - deletedIdx;
+    } else {
+      assert(_.isInt(nextInsertedIdx));
+      var length = nextInsertedIdx - insertedIdx;
+    }
   }
 
   return {
@@ -151,7 +230,38 @@ RowGroup.createRowGroup = function(fileLines, showRange) {
     rowGroup.addInsertedRow(row);
   }
   return rowGroup;
-}
+};
+
+RowGroup.hasMissingRange = function(prevRowGroup, rowGroup) {
+  if (prevRowGroup) {
+    if (rowGroup.get('deletedRows').size() &&
+        prevRowGroup.get('deletedRows').size()) {
+      var prevEndIdx = prevRowGroup.getDeletedRange()[1];
+      var currBeginIdx = rowGroup.getDeletedRange()[0];
+    } else {
+      assert(rowGroup.get('insertedRows').size() &&
+             prevRowGroup.get('insertedRows').size());
+      var prevEndIdx = prevRowGroup.getInsertedRange()[1];
+      var currBeginIdx = rowGroup.getInsertedRange()[0];
+    }
+  } else {
+    var prevEndIdx = 0;
+    if (rowGroup.get('deletedRows').size()) {
+      var currBeginIdx = rowGroup.getDeletedRange()[0];
+    } else {
+      assert(rowGroup.get('insertedRows').size());
+      var currBeginIdx = rowGroup.getInsertedRange()[0];
+    }
+  }
+
+  if (currBeginIdx > prevEndIdx) {
+    // We have a missing range
+    return true;
+  }
+
+  assert(currBeginIdx === prevEndIdx);
+  return false;
+};
 
 
 Globals.Models.RowGroups = RowGroups;

@@ -231,35 +231,14 @@ var FileDiffView = React.createClass({
     var rowViews = [];
     var prevRowGroup;
     this.props.fileDiff.get('rowGroups').each(function(rowGroup) {
-      var deletedRows = rowGroup.get('deletedRows');
-      var insertedRows = rowGroup.get('insertedRows');
 
-      var missingRange = false;
-      if (prevRowGroup) {
-        if (deletedRows.size() && prevRowGroup.get('deletedRows').size()) {
-          var prevEndIdx = prevRowGroup.getDeletedRange()[1];
-          var currBeginIdx = rowGroup.getDeletedRange()[0];
-        } else {
-          assert(insertedRows.size() && prevRowGroup.get('insertedRows').size());
-          var prevEndIdx = prevRowGroup.getInsertedRange()[1];
-          var currBeginIdx = rowGroup.getInsertedRange()[0];
-        }
-      } else {
-        var prevEndIdx = 0;
-        if (deletedRows.size()) {
-          var currBeginIdx = rowGroup.getDeletedRange()[0];
-        } else {
-          var currBeginIdx = rowGroup.getInsertedRange()[0];
-        }
-      }
-
-      if (currBeginIdx > prevEndIdx) {
+      if (RowGroup.hasMissingRange(prevRowGroup, rowGroup)) {
         // We have a missing range
         rowViews.push(this.inlineRenderShowLines(prevRowGroup, rowGroup));
-      } else {
-        assert(currBeginIdx === prevEndIdx);
       }
 
+      var deletedRows = rowGroup.get('deletedRows');
+      var insertedRows = rowGroup.get('insertedRows');
       if (rowGroup.isUnchangedType()) {
         assert(deletedRows.size() === insertedRows.size());
         var rowTuples = _.zip(deletedRows.models, insertedRows.models);
@@ -421,23 +400,13 @@ var FileDiffView = React.createClass({
    * Following are side by side functions
    */
   sideBySideRender: function() {
-    // TODO(mack): Remove duplication this method has with inlineRender()
-
     var rowViews = [];
     var prevRowGroup;
     this.props.fileDiff.get('rowGroups').each(function(rowGroup) {
-      var prevEndIdx = prevRowGroup ? prevRowGroup.getInsertedRange()[1] : 0;
 
-      var currBeginIdx = rowGroup.getInsertedRange()[0];
-      if (!_.isInt(currBeginIdx)) {
-        currBeginIdx = prevEndIdx;
-      }
-
-      if (_.isInt(prevEndIdx) && currBeginIdx > prevEndIdx) {
+      if (RowGroup.hasMissingRange(prevRowGroup, rowGroup)) {
         // We have a missing range
         rowViews.push(this.sideBySideRenderShowLines(prevRowGroup, rowGroup));
-      } else {
-        assert(currBeginIdx === prevEndIdx);
       }
 
       var rowTuples = _.zip(
