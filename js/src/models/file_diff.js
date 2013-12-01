@@ -35,10 +35,9 @@ var FileDiff = Backbone.Model.extend({
 
     var filePromise = $.get(this.get('rawUrl')).then(function(data) {
       var fileLines = data.split(/\r?\n/);
-      // TODO(mack): The raw text that's returned seems to include an extra
-      // empty line, which we need to remove. Need to verify this is always
-      // the case.
-      assert(fileLines.pop() === "");
+      // TODO(mack): The raw text that's returned sometimes includes an extra
+      // empty line. To know if it includes the extra line, we'd need to view
+      // the non-raw view of the file, and see what the last row is.
       this.set('numLines', fileLines.length, { silent: true });
       return fileLines;
     }.bind(this));

@@ -1,6 +1,6 @@
 {
   "name": "Github Enhancement Suite",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Improvements to diff viewer in Github",
   "manifest_version": 2,
   "icons": {
