@@ -66,11 +66,21 @@ var FileDiff = Backbone.Model.extend({
 FileDiff.createFileDiff = function($file) {
 
   var $fileDiff = $file.find('.file-diff');
-  var $viewFileButton = $file.find('.meta .actions .minibutton');
-  var blobUrl = $viewFileButton.attr('href');
-  // TODO(mack): Be careful of '/blob/' as user or repo name
-  var rawUrl = blobUrl.replace(/^\/(.*?)\/blob\/(.*)$/,
-      'https://github.com/$1/raw/$2');
+  var $miniButtons = $file.find('.meta .actions a.minibutton');
+  var rawUrl = null;
+  // TODO(mack): In some cases there is a single anchor, but in some cases
+  // multiple (e.g. a button asking to open in diff in external program).
+  // There's no css pattern to match on, so check each button against regex
+  // for the href format we are expecting. Should find a more durable way
+  // of doing this.
+  $miniButtons.each(function(anchor) {
+    var href = $(this).attr('href');
+    if (href && href.match(/^\/(.*?)\/blob\/(.*)$/)) {
+      rawUrl = href.replace(/^\/(.*?)\/blob\/(.*)$/,
+          'https://github.com/$1/raw/$2');
+      return false;
+    }
+  });
   var fileDiff = new FileDiff({
     id: $file.attr('id'),
     rawUrl: rawUrl,
