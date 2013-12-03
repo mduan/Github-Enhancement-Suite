@@ -21,8 +21,8 @@ var RowGroups = Backbone.Collection.extend({
   insertAfter: function(prevRowGroup, rowGroup) {
     if (!prevRowGroup) {
       if (this.size()) {
-        model.set('next', this.first(), { silent: true });
-        this.first().set('prev', model, { silent: true });
+        rowGroup.set('next', this.first(), { silent: true });
+        this.first().set('prev', rowGroup, { silent: true });
       }
       this.add(rowGroup, { at: 0 });
     } else {
