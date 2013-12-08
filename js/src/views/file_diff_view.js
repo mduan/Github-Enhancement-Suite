@@ -226,7 +226,8 @@ var FileDiffView = React.createClass({
   },
 
   render: function() {
-    if (this.props.diffViewer.get('sideBySide')) {
+    if (this.props.diffViewer.get('sideBySide') &&
+        this.props.fileDiff.hasInsertedAndDeletedRows()) {
       $('.wrapper .container').addClass('large');
       return this.sideBySideRender();
     } else {
@@ -441,7 +442,7 @@ var FileDiffView = React.createClass({
     }
 
     return (
-      <tbody>
+      <tbody className="sideBySide">
         {keyComponentArr(rowViews)}
       </tbody>
     );

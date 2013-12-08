@@ -52,6 +52,25 @@ var FileDiff = Backbone.Model.extend({
     assert(this.get('rowGroups').size());
     return this.get('numLines') === this.get('rowGroups').last().getPrevInsertedIdx();
   },
+
+  hasInsertedAndDeletedRows: function() {
+    var hasInserted = false;
+    var hasDeleted = false;
+    this.get('rowGroups').each(function(rowGroup) {
+      if (rowGroup.isChangedType()) {
+        if (rowGroup.get('insertedRows').size()) {
+          hasInserted = true;
+        }
+        if (rowGroup.get('deletedRows').size()) {
+          hasDeleted = true;
+        }
+      }
+      if (hasInserted && hasDeleted) {
+        return false;
+      }
+    });
+    return hasInserted && hasDeleted;
+  },
 });
 
 

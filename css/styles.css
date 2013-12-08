@@ -96,28 +96,28 @@ tr.inline-comments .line-comments.show-form .show-inline-comment-form {
   background-color: white;
 }
 
-.sideBySide .file-diff td {
+.file-diff .sideBySide td {
   border-right: 1px solid #e5e5e5;
 }
 
-.sideBySide .file-diff td:nth-child(1),
-.sideBySide .file-diff td:nth-child(3) {
+.file-diff .sideBySide td:nth-child(1),
+.file-diff .sideBySide td:nth-child(3) {
   text-align: right;
   padding: 2px 6px 0 0;
   min-width: 35px;
   max-width: 5%;
 }
 
-.sideBySide .file-diff td {
+.file-diff .sideBySide td {
   word-break: break-all;
   word-wrap: break-word;
 }
 
-.sideBySide .file-diff td:nth-child(2) {
+.file-diff .sideBySide td:nth-child(2) {
   width: 45%;
 }
 
-.sideBySide .file-diff td:last-child {
+.file-diff .sideBySide td:last-child {
   width: 45%;
   border-right: 0;
 }
@@ -144,12 +144,12 @@ tr.inline-comments .line-comments.show-form .show-inline-comment-form {
   font-size: 10px;
 }
 
-.sideBySide .file-diff.unselectableDeletion .inline-comments,
-.sideBySide .file-diff.unselectableInsertion .inline-comments,
-.sideBySide .file-diff.unselectableDeletion tr td:nth-child(2),
-.sideBySide .file-diff.unselectableInsertion tr td:nth-child(4),
-.sideBySide .file-diff tr td:nth-child(1),
-.sideBySide .file-diff tr td:nth-child(3) {
+.file-diff.unselectableDeletion .sideBySide .inline-comments,
+.file-diff.unselectableInsertion .sideBySide .inline-comments,
+.file-diff.unselectableDeletion .sideBySide tr td:nth-child(2),
+.file-diff.unselectableInsertion .sideBySide tr td:nth-child(4),
+.file-diff .sideBySide tr td:nth-child(1),
+.file-diff .sideBySide tr td:nth-child(3) {
   -moz-user-select: -moz-none;
   -khtml-user-select: none;
   -webkit-user-select: none;
@@ -157,11 +157,11 @@ tr.inline-comments .line-comments.show-form .show-inline-comment-form {
   user-select: none;
 }
 
-.sideBySide .file-diff.hide-line-numbers .diff-line-num:before {
+.file-diff.hide-line-numbers .sideBySide .diff-line-num:before {
   content: "" !important;
 }
 
-.sideBySide .file-diff.hide-line-numbers .line-num-content {
+.file-diff.hide-line-numbers .sideBySide .line-num-content {
   display: inline;
   visibility: visible;
 }
