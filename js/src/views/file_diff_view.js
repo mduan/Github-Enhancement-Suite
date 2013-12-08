@@ -200,11 +200,11 @@ var FileDiffView = React.createClass({
     return links;
   },
 
-  renderLineNumberCell: function(lineNum) {
+  renderLineNumberCell: function(lineNum, rowClass) {
     return (
       <td id={lineNum.htmlId}
           className={'diff-line-num linkable-line-number '
-            + (_.isInt(lineNum.idx) ? '' : 'empty-cell')}
+            + (_.isInt(lineNum.idx) ? '' : 'empty-cell') + ' ' + (rowClass || '')}
           data-line-number={_.isInt(lineNum.dataNum) ? lineNum.dataNum : ''}>
         <span className="line-num-content">
           {(lineNum.idx + 1) || ''}
@@ -579,7 +579,7 @@ var FileDiffView = React.createClass({
     }
 
     var views = [
-      this.renderLineNumberCell(lineNum),
+      this.renderLineNumberCell(lineNum, rowClass),
       <td className={'diff-line-code ' + rowClass} data-cid={rowCid} data-position={position}>
         {commentIcon}
         <pre className="diff-line-pre" dangerouslySetInnerHTML={{ __html: text }}>

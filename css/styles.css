@@ -103,8 +103,6 @@ tr.inline-comments .line-comments.show-form .show-inline-comment-form {
 .sideBySide .file-diff td:nth-child(1),
 .sideBySide .file-diff td:nth-child(3) {
   text-align: right;
-  background: #eee;
-  border-right: 1px solid #ccc;
   padding: 2px 6px 0 0;
   min-width: 35px;
   max-width: 5%;
