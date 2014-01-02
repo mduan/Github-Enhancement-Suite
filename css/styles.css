@@ -1,3 +1,16 @@
+body.sideBySide .site .container {
+  margin-left: 2%;
+  margin-right: 2%;
+  width: auto;
+}
+
+body.sideBySide :not(.repository-with-sidebar) .repository-content {
+  width: 100%;
+}
+body.sideBySide .repository-with-sidebar .repository-content {
+  width: 95%;
+}
+
 .wordWrap .diff-line-pre {
   white-space: pre-wrap;
   word-wrap: word-break;

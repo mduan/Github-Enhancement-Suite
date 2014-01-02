@@ -36,6 +36,9 @@ $(document).ready(function() {
   function renderPage(diffViewer) {
     renderFileDiffs(diffViewer);
     renderCheckboxes(diffViewer);
+    if (diffViewer.get('sideBySide')) {
+      $('body').addClass('sideBySide');
+    }
   }
 
   getSettings(['sideBySide', 'wordWrap']).then(function(settings) {
