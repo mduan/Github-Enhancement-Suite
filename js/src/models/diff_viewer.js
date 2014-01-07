@@ -11,7 +11,6 @@ var DiffViewer = Backbone.Model.extend({
       numLinesToShow: 20,
       author: null,
       repo: null,
-      commitHash: null,
     };
   },
 
@@ -22,7 +21,6 @@ var DiffViewer = Backbone.Model.extend({
     assert(_.isInt(this.get('numLinesToShow')));
     assert(_.isString(this.get('author')));
     assert(_.isString(this.get('repo')));
-    assert(_.isString(this.get('commitHash')));
   },
 });
 

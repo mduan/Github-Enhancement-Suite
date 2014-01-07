@@ -44,14 +44,13 @@ $(document).ready(function() {
   getSettings(['sideBySide', 'wordWrap']).then(function(settings) {
     var wordWrap = 'wordWrap' in settings ? settings.wordWrap : true;
     var sideBySide = 'sideBySide' in settings ? settings.sideBySide : true;
-    var urlMatches = location.href.match('^.*?://github.com/(.+?)/(.+?)/(.+?)/([a-z0-9]+)');
+    var urlMatches = location.href.match('^.*?://github.com/(.+?)/(.+?)/');
     var diffViewer = new DiffViewer({
       sideBySide: sideBySide,
       wordWrap: wordWrap,
       numLinesToShow: 20,
       author: urlMatches[1],
       repo: urlMatches[2],
-      commitHash: urlMatches[4],
     });
     renderPage(diffViewer);
   });

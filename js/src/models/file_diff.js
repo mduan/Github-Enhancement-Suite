@@ -86,10 +86,25 @@ FileDiff.createFileDiff = function($file, diffViewer) {
 
   var $fileDiff = $file.find('.file-diff');
   var filePath = $file.find('.meta').attr('data-path');
+
+  var commitHash = null;
+  $file.find('.button-group a').each(function() {
+    var $el = $(this);
+    var href = $el.attr('href');
+    if (!href) {
+      return;
+    }
+
+    var matches = href.match('/(.+?)/(.+?)/blob/(.+?)/' + filePath);
+    if (matches) {
+      commitHash = matches[3];
+      return false;
+    }
+  });
   var rawUrl = ('https://raw.github.com/'
     + diffViewer.get('author') + '/'
     + diffViewer.get('repo') + '/'
-    + diffViewer.get('commitHash') + '/'
+    + commitHash + '/'
     + filePath);
 
   var fileDiff = new FileDiff({
