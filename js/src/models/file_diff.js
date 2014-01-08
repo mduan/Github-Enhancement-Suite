@@ -101,9 +101,10 @@ FileDiff.createFileDiff = function($file, diffViewer) {
       return false;
     }
   });
-  var rawUrl = ('https://raw.github.com/'
+  var rawUrl = ('https://github.com/'
     + diffViewer.get('author') + '/'
     + diffViewer.get('repo') + '/'
+    + 'raw/'
     + commitHash + '/'
     + filePath);
 
