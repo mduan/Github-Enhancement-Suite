@@ -48,6 +48,7 @@ $(document).ready(function() {
     var diffViewer = new DiffViewer({
       sideBySide: sideBySide,
       wordWrap: wordWrap,
+      syntaxHighlight: true,
       numLinesToShow: 20,
       author: urlMatches[1],
       repo: urlMatches[2],

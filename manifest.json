@@ -17,13 +17,17 @@
     "run_at": "document_end"
   },
   "content_scripts": [{
-    "css": ["css/styles.css"],
+    "css": [
+      "ext/highlight/styles/github.css",
+      "css/styles.css"
+    ],
     "matches": [
       "https://github.com/*/pull/*",
       "https://github.com/*/commit/*",
       "https://github.com/*/compare/*"
     ],
     "js": [
+      "ext/highlight/highlight.pack.js",
       "js/ext/jquery-2.0.3.js",
       "js/ext/react-0.6.0a.js",
       "js/ext/underscore-1.5.2.js",
@@ -46,6 +50,7 @@
     "tabs",
     "webNavigation",
     "https://github.com/*",
-    "https://raw.github.com/*"
+    "https://raw.github.com/*",
+    "https://raw2.github.com/*"
   ]
 }

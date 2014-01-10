@@ -364,7 +364,7 @@ var FileDiffView = React.createClass({
         <td className="diff-line-code" data-cid={row.cid}
             data-position={_.isInt(row.get('position')) || ''}>
           {commentIcon}
-          <pre className="diff-line-pre" dangerouslySetInnerHTML={{ __html: row.get('text') }}>
+          <pre className="diff-line-pre" dangerouslySetInnerHTML={{ __html: this.renderCodeProcessor(row.get('text')) }}>
           </pre>
         </td>
       </tr>
@@ -377,6 +377,16 @@ var FileDiffView = React.createClass({
     }
 
     return views;
+  },
+
+  // TODO(mack): move
+  renderCodeProcessor: function(code) {
+    var ret = code;
+    if (this.props.diffViewer.get('syntaxHighlight')) {
+      var decoded = $('<div/>').html(code).text();
+      ret = hljs.highlight('js', decoded).value;
+    }
+    return ret;
   },
 
   inlineOnClickAddComment: function(evt) {
