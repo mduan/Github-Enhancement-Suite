@@ -66,9 +66,11 @@ var FileDiff = Backbone.Model.extend({
         deletedData = deletedData.substring(0, deletedData.length - 1);
       }
 
+      insertedData = $('<div/>').html(insertedData).text();
       var hlInsertedData = hljs.highlightAuto(insertedData).value;
       var hlInsertedLines = hlInsertedData.split(/\r?\n/);
 
+      deletedData = $('<div/>').html(deletedData).text();
       var deletedLines = deletedData.split(/\r?\n/);
       var hlDeletedData = hljs.highlightAuto(deletedData).value;
       var hlDeletedLines = hlDeletedData.split(/\r?\n/);
