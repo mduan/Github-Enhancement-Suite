@@ -1,6 +1,6 @@
 {
   "name": "Github Side-by-Side Diffs",
-  "version": "0.0.10",
+  "version": "0.0.11",
   "description": "Support side-by-side diffs in Github, and other improvements to Github's diff viewer.",
   "manifest_version": 2,
   "icons": {
