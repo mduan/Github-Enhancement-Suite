@@ -7,7 +7,7 @@ watch:
 
 build: all
 	mkdir -p build/
-	zip -r build/Github-Enhancement-Suite.zip manifest.json img/ css/ js/build/ js/ext/ -x *.module-cache* *.DS_Store*
+	zip -r build/Github-Enhancement-Suite.zip manifest.json img/ css/ js/build/ ext/ -x *.module-cache* *.DS_Store*
 
 clean:
 	rm -rf js/build/
