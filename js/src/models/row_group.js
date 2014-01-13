@@ -165,9 +165,11 @@ RowGroup.getMissingRangeInfo = function(prevRowGroup, nextRowGroup, numLines) {
       assert(deletedRange[0] === insertedRange[0]);
       var length = deletedRange[0];
     } else if (nextRowGroup.get('deletedRows').size()) {
+      var deletedRange = nextRowGroup.getDeletedRange();
       var length = deletedRange[0];
     } else {
       assert(nextRowGroup.get('insertedRows').size());
+      var insertedRange = nextRowGroup.getInsertedRange();
       var length = insertedRange[0];
     }
     var deletedIdx = 0;
@@ -236,6 +238,7 @@ RowGroup.createUnchangedRowGroup = function(fileDiff, showRange) {
   return rowGroup;
 };
 
+// TODO(mack): Merge this funtionality into getMissingRangeInfo()
 RowGroup.hasMissingRange = function(prevRowGroup, rowGroup) {
   if (prevRowGroup) {
     if (rowGroup.get('deletedRows').size() &&

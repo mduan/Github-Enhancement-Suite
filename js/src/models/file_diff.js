@@ -66,11 +66,9 @@ var FileDiff = Backbone.Model.extend({
         deletedData = deletedData.substring(0, deletedData.length - 1);
       }
 
-      insertedData = $('<div/>').html(insertedData).text();
       var hlInsertedData = hljs.highlightAuto(insertedData).value;
       var hlInsertedLines = hlInsertedData.split(/\r?\n/);
 
-      deletedData = $('<div/>').html(deletedData).text();
       var deletedLines = deletedData.split(/\r?\n/);
       var hlDeletedData = hljs.highlightAuto(deletedData).value;
       var hlDeletedLines = hlDeletedData.split(/\r?\n/);
@@ -232,7 +230,8 @@ FileDiff.createFileDiff = function($file, diffViewer) {
       if (rowType === Row.Type.DELETED || rowType === Row.Type.UNCHANGED) {
 
         var deletedLineNum = parseLineNumberCell($cells.eq(0));
-        deletedLines[deletedLineNum.get('idx')] = codeData.text.substring(1);
+        var line = $('<div/>').html(codeData.text.substring(1)).text();
+        deletedLines[deletedLineNum.get('idx')] = line;
 
         var row = new Row({
           type: rowType,

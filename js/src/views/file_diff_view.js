@@ -22,6 +22,11 @@ function keyComponentArr(arr) {
 
 var FileDiffView = React.createClass({
 
+  getInitialState: function() {
+    this.createShortRowGroups();
+    return {};
+  },
+
   componentDidMount: function() {
     var events = this.props.events = _.clone(Backbone.Events);
     events.listenTo(this.props.fileDiff, 'change', this.reRender);
@@ -105,19 +110,6 @@ var FileDiffView = React.createClass({
 
     var rangeInfo = RowGroup.getMissingRangeInfo(
         prevRowGroup, nextRowGroup, this.props.fileDiff.getNumLines());
-
-    if (!rangeInfo.length) {
-      // Only clicking show lines at end of a file can result in a missing
-      // range info of length 0. This happens because we do not originally
-      // know the length of the file, and thus do not realize the end of
-      // diff being shown is actually the end of the file.
-      assert(rangeInfo.position === 'last');
-      // Trigger change so we can update view. For example, the number of
-      // lines for the last show lines row needs to be updated now that
-      // we know length of file.
-      this.props.fileDiff.trigger('change');
-      return;
-    }
 
     if ($target.hasClass('showAll') || rangeInfo.length <= linesToShow) {
       var showRange = {
@@ -236,6 +228,41 @@ var FileDiffView = React.createClass({
     }
   },
 
+  // Create row groups for missing ranges that are small
+  createShortRowGroups: function() {
+    var rowGroups = this.props.fileDiff.get('rowGroups');
+    var prevRowGroup = null;
+    for (var idx = 0; idx <= rowGroups.length; ++idx) {
+      var rowGroup = rowGroups.at(idx);
+
+      var rangeInfo = RowGroup.getMissingRangeInfo(
+          prevRowGroup, rowGroup, this.props.fileDiff.getNumLines());
+
+      if (!rangeInfo.length) {
+        prevRowGroup = rowGroup;
+        continue;
+      }
+
+      var linesToShow = this.props.diffViewer.get('numLinesToShow');
+      if (rangeInfo.length <= 2 * linesToShow) {
+        var showRange = {
+          deletedIdx: rangeInfo.deletedIdx,
+          insertedIdx: rangeInfo.insertedIdx,
+          length: rangeInfo.length,
+        };
+
+        var newRowGroup = RowGroup.createUnchangedRowGroup(
+            this.props.fileDiff, showRange);
+        rowGroups.insertAfter(prevRowGroup, newRowGroup);
+
+        // Skip the rowGroup we just added, since we have already filled
+        // in the gap.
+        ++idx;
+      }
+
+      prevRowGroup = rowGroup;
+    }
+  },
 
   /**
    * Following are inline function
