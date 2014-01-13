@@ -98,65 +98,58 @@ var FileDiffView = React.createClass({
   },
 
   onClickShowLines: function(prevRowGroup, nextRowGroup, evt, currTargetId) {
-    var numLines = this.props.diffViewer.get('numLinesToShow');
+    var linesToShow = this.props.diffViewer.get('numLinesToShow');
     // TODO(mack): See if there's a less hacky way to get the real target.
     var $target = $('[data-reactid="' + currTargetId + '"]');
-    //this.props.fileDiff.fetchHighlightFile().then(function(fileLines) {
-    //  console.log('deleted:\n', fileLines);
-    //});
-    this.props.fileDiff.fetchFile().then(function(lines) {
-      var deletedLines = lines[0];
-      var insertedLines = lines[1];
-      var rangeInfo = RowGroup.getMissingRangeInfo(
-        prevRowGroup, nextRowGroup, insertedLines.length);
 
-      if (!rangeInfo.length) {
-        // Only clicking show lines at end of a file can result in a missing
-        // range info of length 0. This happens because we do not originally
-        // know the length of the file, and thus do not realize the end of
-        // diff being shown is actually the end of the file.
-        assert(rangeInfo.position === 'last');
-        // Trigger change so we can update view. For example, the number of
-        // lines for the last show lines row needs to be updated now that
-        // we know length of file.
-        this.props.fileDiff.trigger('change');
-        return;
-      }
+    var rangeInfo = RowGroup.getMissingRangeInfo(
+        prevRowGroup, nextRowGroup, this.props.fileDiff.getNumLines());
 
-      if ($target.hasClass('showAll') || rangeInfo.length <= numLines) {
-        var showRange = {
-          deletedIdx: rangeInfo.deletedIdx,
-          insertedIdx: rangeInfo.insertedIdx,
-          length: rangeInfo.length,
-        };
-      } else if ($target.hasClass('showAbove')) {
-        var showRange = {
-          deletedIdx: rangeInfo.deletedIdx,
-          insertedIdx: rangeInfo.insertedIdx,
-          length: numLines,
-        };
-      } else {
-        assert($target.hasClass('showBelow'));
-        var showRange = {
-          deletedIdx: rangeInfo.deletedIdx + rangeInfo.length - numLines,
-          insertedIdx: rangeInfo.insertedIdx + rangeInfo.length - numLines,
-          length: numLines,
-        };
-      }
+    if (!rangeInfo.length) {
+      // Only clicking show lines at end of a file can result in a missing
+      // range info of length 0. This happens because we do not originally
+      // know the length of the file, and thus do not realize the end of
+      // diff being shown is actually the end of the file.
+      assert(rangeInfo.position === 'last');
+      // Trigger change so we can update view. For example, the number of
+      // lines for the last show lines row needs to be updated now that
+      // we know length of file.
+      this.props.fileDiff.trigger('change');
+      return;
+    }
 
-      var rowGroup = RowGroup.createRowGroup(lines, showRange);
-      this.props.fileDiff.get('rowGroups').insertAfter(prevRowGroup, rowGroup);
+    if ($target.hasClass('showAll') || rangeInfo.length <= linesToShow) {
+      var showRange = {
+        deletedIdx: rangeInfo.deletedIdx,
+        insertedIdx: rangeInfo.insertedIdx,
+        length: rangeInfo.length,
+      };
+    } else if ($target.hasClass('showAbove')) {
+      var showRange = {
+        deletedIdx: rangeInfo.deletedIdx,
+        insertedIdx: rangeInfo.insertedIdx,
+        length: linesToShow,
+      };
+    } else {
+      assert($target.hasClass('showBelow'));
+      var showRange = {
+        deletedIdx: rangeInfo.deletedIdx + rangeInfo.length - linesToShow,
+        insertedIdx: rangeInfo.insertedIdx + rangeInfo.length - linesToShow,
+        length: linesToShow,
+      };
+    }
 
-    }.bind(this));
+    var rowGroup = RowGroup.createUnchangedRowGroup(
+        this.props.fileDiff, showRange);
+    this.props.fileDiff.get('rowGroups').insertAfter(prevRowGroup, rowGroup);
 
     evt.preventDefault();
   },
 
   renderShowLinesLinks: function(prevRowGroup, nextRowGroup) {
 
-    var numLines = this.props.fileDiff.get('numLines');
     var rangeInfo = RowGroup.getMissingRangeInfo(
-        prevRowGroup, nextRowGroup, numLines);
+        prevRowGroup, nextRowGroup, this.props.fileDiff.getNumLines());
     var pos = rangeInfo.position;
 
     // TODO(mack): Store prev/next row groups cids in DOM
@@ -164,14 +157,10 @@ var FileDiffView = React.createClass({
         this, prevRowGroup, nextRowGroup);
     var links = [];
 
-    if (pos === 'last') {
-      var lengthKnown = _.isInt(rangeInfo.length);
-      assert(lengthKnown === _.isInt(numLines));
-    }
     var showAllLink = (
       <a onClick={clickShowLines}
           className="showAll" href="#">
-        Show all {(pos === 'last' && !lengthKnown) ? '' : rangeInfo.length} remaining lines
+        Show all {rangeInfo.length} remaining lines
       </a>
     );
     links.push(showAllLink);
@@ -356,6 +345,7 @@ var FileDiffView = React.createClass({
     }
 
     var views = [];
+    var code = row.getCode(this.props.diffViewer.get('syntaxHighlight'));
     var codeView = (
       <tr className={'file-diff-line ' + rowClass}>
         {this.renderLineNumberCell(deletedLineNum)}
@@ -369,7 +359,7 @@ var FileDiffView = React.createClass({
         <td className="diff-line-code" data-cid={row.cid}
             data-position={_.isInt(row.get('position')) || ''}>
           {commentIcon}
-          <pre className="diff-line-pre" dangerouslySetInnerHTML={{ __html: this.renderCodeProcessor(row.get('text')) }}>
+          <pre className="diff-line-pre" dangerouslySetInnerHTML={{ __html: code }}>
           </pre>
         </td>
       </tr>
@@ -382,16 +372,6 @@ var FileDiffView = React.createClass({
     }
 
     return views;
-  },
-
-  // TODO(mack): move
-  renderCodeProcessor: function(code) {
-    var ret = code;
-    if (this.props.diffViewer.get('syntaxHighlight')) {
-      var decoded = $('<div/>').html(code).text();
-      ret = hljs.highlight('js', decoded).value;
-    }
-    return ret;
   },
 
   inlineOnClickAddComment: function(evt) {
@@ -431,6 +411,7 @@ var FileDiffView = React.createClass({
   sideBySideRender: function() {
     var rowViews = [];
     var prevRowGroup;
+
     this.props.fileDiff.get('rowGroups').each(function(rowGroup) {
 
       if (RowGroup.hasMissingRange(prevRowGroup, rowGroup)) {
@@ -566,7 +547,7 @@ var FileDiffView = React.createClass({
       var rowCid = '';
       var rowClass = 'empty-line';
       var lineNum = {};
-      var text = '';
+      var code = '';
       var position = '';
       var commentIcon = '';
     } else {
@@ -579,7 +560,7 @@ var FileDiffView = React.createClass({
         var rowClass = '';
         assert(row.isUnchangedType());
       }
-      var text = row.get('text');
+      var code = row.getCode(this.props.diffViewer.get('syntaxHighlight'));
       var lineNum = row.get('lineNum').toJSON();
       var position = row.get('position');
 
@@ -598,7 +579,7 @@ var FileDiffView = React.createClass({
       this.renderLineNumberCell(lineNum, rowClass),
       <td className={'diff-line-code ' + rowClass} data-cid={rowCid} data-position={position}>
         {commentIcon}
-        <pre className="diff-line-pre" dangerouslySetInnerHTML={{ __html: text }}>
+        <pre className="diff-line-pre" dangerouslySetInnerHTML={{ __html: code }}>
         </pre>
       </td>
     ];

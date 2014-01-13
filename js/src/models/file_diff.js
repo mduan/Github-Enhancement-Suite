@@ -28,98 +28,68 @@ var FileDiff = Backbone.Model.extend({
     this.propagateChange('rowGroups');
   },
 
-  /*
-  fetchFile: function() {
-    if (this.has('filePromise')) {
-      return this.get('filePromise');
-    }
-
-    var filePromise = $.get(this.get('rawUrl')).then(function(data) {
-      var fileLines = data.split(/\r?\n/);
-      // TODO(mack): The raw text that's returned sometimes includes an extra
-      // empty line. To know if it includes the extra line, we'd need to view
-      // the non-raw view of the file, and see what the last row is.
-      this.set('numLines', fileLines.length, { silent: true });
-      return fileLines;
-    }.bind(this));
-    this.set('filePromise', filePromise, { silent: true });
-    return filePromise;
-  },
-  */
-
   fetchFile: function() {
     if (this.has('insertedLines')) {
       var deferred = $.Deferred();
-      deferred.resolve([this.get('deletedLines'), this.get('insertedLines')]);
+      deferred.resolve();
       return deferred.promise();
     }
 
     var promise = $.get(this.get('rawUrl')).then(function(insertedData) {
-      var insLines = insertedData.split(/\r?\n/);
+      var insertedLines = insertedData.split(/\r?\n/);
 
+      var deletedLines = this.get('deletedLines');
       var deletedData = '';
       var currLineIdx = 0;
-      // TODO(mack): Use .each()
       this.get('rowGroups').each(function(rowGroup) {
-        var deletedRows = rowGroup.get('deletedRows');
         var insertedRows = rowGroup.get('insertedRows');
         var insertedRange = insertedRows.getRange();
 
         for (currLineIdx; currLineIdx < insertedRange[0]; ++currLineIdx) {
-          deletedData += insLines[currLineIdx] + '\n';
+          deletedData += insertedLines[currLineIdx] + '\n';
         }
 
-        deletedRows.each(function(row) {
-          deletedData += row.get('text') + '\n';
-        });
+        var deletedRows = rowGroup.get('deletedRows');
+        var deletedRange = deletedRows.getRange();
+        for (var delIdx = deletedRange[0]; delIdx < deletedRange[1]; ++delIdx) {
+          deletedData += deletedLines[delIdx] + '\n';
+        }
+
         var lineRangeSize = insertedRange[1] - insertedRange[0];
         currLineIdx += lineRangeSize;
       });
 
-      for (currLineIdx; currLineIdx < insLines.length; ++currLineIdx) {
-        deletedData += insLines[currLineIdx] + '\n';
+      for (currLineIdx; currLineIdx < insertedLines.length; ++currLineIdx) {
+        deletedData += insertedLines[currLineIdx] + '\n';
       }
       if (deletedData) {
         deletedData = deletedData.substring(0, deletedData.length - 1);
       }
 
-      //var extension = this.get('extension');
-      var deletedData = $('<div/>').html(deletedData).text();
-      var deletedData = hljs.highlightAuto(deletedData).value;
-      var insertedData = $('<div/>').html(insertedData).text();
-      var insertedData = hljs.highlightAuto(insertedData).value;
+      var hlInsertedData = hljs.highlightAuto(insertedData).value;
+      var hlInsertedLines = hlInsertedData.split(/\r?\n/);
 
-      deletedData = deletedData.replace(/\r?\n/, '\n ');
       var deletedLines = deletedData.split(/\r?\n/);
-      var insertedLines = insertedData.split(/\r?\n/);
-      // TODO(mack): Clean this up
-      for (var idx = 0; idx < insertedLines.length; ++idx) {
-        insertedLines[idx] = ' ' + insertedLines[idx];
-      }
+      var hlDeletedData = hljs.highlightAuto(deletedData).value;
+      var hlDeletedLines = hlDeletedData.split(/\r?\n/);
 
+      assert(deletedLines.length === hlDeletedLines.length);
+      assert(insertedLines.length === hlInsertedLines.length);
       this.set('deletedLines', deletedLines, { silent: true });
       this.set('insertedLines', insertedLines, { silent: true });
-      // TODO(mack): The raw text that's returned sometimes includes an extra
-      // empty line. To know if it includes the extra line, we'd need to view
-      // the non-raw view of the file, and see what the last row is.
-      this.set('numLines', insertedLines.length, { silent: true });
+      this.set('hlDeletedLines', hlDeletedLines, { silent: true });
+      this.set('hlInsertedLines', hlInsertedLines, { silent: true });
 
-      this.get('rowGroups').each(function(rowGroup) {
-        rowGroup.get('deletedRows').each(function(row) {
-          row.set('text', deletedLines[row.getLineIdx()], { silent: true });
-          //if (row.get('type') === Row.Type.DELETED) {
-          //  console.log('deleted:"' +  deletedLine + '"');
-          //}
-        });
-        rowGroup.get('insertedRows').each(function(row) {
-          row.set('text', insertedLines[row.getLineIdx()], { silent: true });
-        });
-      });
-
-      return [deletedLines, insertedLines];
     }.bind(this));
 
     return promise;
+  },
+
+  getNumLines: function() {
+    // TODO(mack): The raw text that's returned sometimes includes an extra
+    // empty line. To know if it includes the extra line, we'd need to view
+    // the non-raw view of the file, and see what the last row is.
+    return this.get('insertedLines').length;
   },
 
   // Returns whether our final row group includes up to the last line of
@@ -127,7 +97,7 @@ var FileDiff = Backbone.Model.extend({
   // show remaining lines links
   hasLastRowGroup: function() {
     assert(this.get('rowGroups').size());
-    return this.get('numLines') === this.get('rowGroups').last().getPrevInsertedIdx();
+    return this.getNumLines() === this.get('rowGroups').last().getPrevInsertedIdx();
   },
 
   hasInsertedAndDeletedRows: function() {
@@ -147,6 +117,23 @@ var FileDiff = Backbone.Model.extend({
       }
     });
     return hasInserted && hasDeleted;
+  },
+
+  getCode: function(params) {
+    if (params.side === Row.Side.LEFT) {
+      if (params.syntaxHighlight) {
+        return this.get('hlDeletedLines')[params.lineIdx];
+      } else {
+        return this.get('deletedLines')[params.lineIdx];
+      }
+    } else {
+      assert(params.side === Row.Side.RIGHT);
+      if (params.syntaxHighlight) {
+        return this.get('hlInsertedLines')[params.lineIdx];
+      } else {
+        return this.get('insertedLines')[params.lineIdx];
+      }
+    }
   },
 });
 
@@ -190,7 +177,12 @@ FileDiff.createFileDiff = function($file, diffViewer) {
     id: $file.attr('id'),
     rawUrl: rawUrl,
     extension: extension,
+    filePath: filePath,
   });
+  // The deleted lines need to be stored since we only fetch the new
+  // (inserted) file.
+  var deletedLines = [];
+  fileDiff.set('deletedLines', deletedLines, { silent: true });
 
   var currGroup;
   var prevRow1;
@@ -209,27 +201,22 @@ FileDiff.createFileDiff = function($file, diffViewer) {
 
       var $cells = $row.find('td');
       var codeData = parseCodeCell($cells.eq(2));
-      var rowText = codeData.text;
       if ($row.hasClass('gd')) {
-        var rowStr = 'deleted';
         var rowType = Row.Type.DELETED;
         var groupType = RowGroup.Type.CHANGED;
-        assert(rowText[0] === '-');
-        rowText = ' ' + rowText.substring(1);
       } else if ($row.hasClass('gi')) {
-        var rowStr = 'inserted';
         var rowType = Row.Type.INSERTED;
         var groupType = RowGroup.Type.CHANGED;
-        assert(rowText[0] === '+');
-        rowText = ' ' + rowText.substring(1);
       } else {
-        var rowStr = 'unchanged';
         var rowType = Row.Type.UNCHANGED;
         var groupType = RowGroup.Type.UNCHANGED;
       }
 
       if (!currGroup || (currGroup.get('type') !== groupType)) {
-        currGroup = new RowGroup({ type: groupType });
+        currGroup = new RowGroup({
+          type: groupType,
+          fileDiff: fileDiff,
+        });
         fileDiff.get('rowGroups').add(currGroup);
       }
 
@@ -241,11 +228,15 @@ FileDiff.createFileDiff = function($file, diffViewer) {
       // of it in a side-by-side view. The main thing that differs between the
       // two entries is the line number.
       if (rowType === Row.Type.DELETED || rowType === Row.Type.UNCHANGED) {
+
         var deletedLineNum = parseLineNumberCell($cells.eq(0));
+        deletedLines[deletedLineNum.get('idx')] = codeData.text.substring(1);
+
         var row = new Row({
           type: rowType,
+          side: Row.Side.LEFT,
+          rowGroup: currGroup,
           lineNum: deletedLineNum,
-          text: rowText,
           commentUrl: commentUrl,
           position: rowPosition,
         });
@@ -258,8 +249,9 @@ FileDiff.createFileDiff = function($file, diffViewer) {
         var insertedLineNum = parseLineNumberCell($cells.eq(1));
         var row = new Row({
           type: rowType,
+          side: Row.Side.RIGHT,
+          rowGroup: currGroup,
           lineNum: insertedLineNum,
-          text: rowText,
           commentUrl: commentUrl,
           position: rowPosition,
         });
@@ -297,8 +289,6 @@ FileDiff.createFileDiff = function($file, diffViewer) {
     }
   });
 
-  //var $lineNumber = $fileDiff.find('.diff-line-num:first').eq(0);
-  //rows.fileIndex = parseInt($lineNumber.attr('id').match(/^L(\d+)/)[1], 10);
   return fileDiff;
 };
 

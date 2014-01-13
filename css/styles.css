@@ -12,6 +12,7 @@ body.sideBySide .repository-with-sidebar .repository-content {
 }
 
 .wordWrap .diff-line-pre {
+  padding-left: 8px;
   white-space: pre-wrap;
   word-wrap: word-break;
   /* TODO(mack): word-wrap: word-break should work, but it's not, so add this

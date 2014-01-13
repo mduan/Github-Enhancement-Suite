@@ -53,7 +53,8 @@ var Row = Backbone.Model.extend({
   initialize: function(params) {
     this._super('initialize', params);
     assert(this.isValidType());
-    assert(_.isString(this.get('text')));
+    // TODO(mack): See if there's a better way than reverse access to RowGroup
+    assert(this.get('rowGroup') instanceof Globals.Models.RowGroup);
     assert(_.isInt(this.get('position')) || _.isNaN(this.get('position')));
     assert(!this.has('commentUrl') || _.isString(this.get('commentUrl')));
     assert(!this.has('comment') || this.get('comment') instanceof Comment);
@@ -82,12 +83,26 @@ var Row = Backbone.Model.extend({
   getLineIdx: function() {
     return this.get('lineNum').get('idx');
   },
+
+  getCode: function(syntaxHighlight) {
+    var code = this.get('rowGroup').getCode({
+      side: this.get('side'),
+      syntaxHighlight: syntaxHighlight,
+      lineIdx: this.getLineIdx(),
+    });
+    return code;
+  },
 });
 
 Row.Type = {
   UNCHANGED: 1,
   DELETED: 2,
   INSERTED: 3,
+};
+
+Row.Side = {
+  LEFT: 'left',
+  RIGHT: 'right',
 };
 
 var Rows = Backbone.Collection.extend({

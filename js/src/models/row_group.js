@@ -54,6 +54,8 @@ var RowGroup = Backbone.Model.extend({
     assert(this.isValidType());
     assert(this.get('deletedRows') instanceof Rows);
     assert(this.get('insertedRows') instanceof Rows);
+    // TODO(mack): See if there's a better way than reverse access to FileDiff
+    assert(this.get('fileDiff') instanceof Globals.Models.FileDiff);
     this.propagateChange('deletedRows');
     this.propagateChange('insertedRows');
   },
@@ -139,6 +141,10 @@ var RowGroup = Backbone.Model.extend({
     }
     return NaN;
   },
+
+  getCode: function(params) {
+    return this.get('fileDiff').getCode(params);
+  },
 });
 
 RowGroup.Type = {
@@ -173,7 +179,7 @@ RowGroup.getMissingRangeInfo = function(prevRowGroup, nextRowGroup, numLines) {
     // numLines refers to number of lines in new (inserted) file, which
     // is why we take difference with insertedidx to get length of
     // the missing range.
-    var length = _.isInt(numLines) ? numLines - insertedIdx : NaN;
+    var length = numLines - insertedIdx;
   } else {
     position = 'middle';
     var deletedIdx = prevRowGroup.getPrevDeletedIdx();
@@ -202,35 +208,28 @@ RowGroup.getMissingRangeInfo = function(prevRowGroup, nextRowGroup, numLines) {
   };
 };
 
-RowGroup.createRowGroup = function(lines, showRange) {
-  var deletedLines = lines[0];
-  var insertedLines = lines[1];
+RowGroup.createUnchangedRowGroup = function(fileDiff, showRange) {
   var rowGroup = new RowGroup({
     type: RowGroup.Type.UNCHANGED,
+    fileDiff: fileDiff,
   });
   for (var i = 0; i < showRange.length; ++i) {
     var currDeletedIdx = showRange.deletedIdx + i;
     var currInsertedIdx = showRange.insertedIdx + i;
-    var deletedLine = deletedLines[currDeletedIdx];
-    var insertedLine = insertedLines[currInsertedIdx];
-
-    //fileLine = $('<div/>').text(' ' + fileLine).html();
-    //fileLine = fileLine
-    //  //.replace(/ /g, '&nbsp;')
-    //  //.replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;');
-    //  .replace(/\t/g, '        ');
 
     var row = new Row({
       type: Row.Type.UNCHANGED,
+      side: Row.Side.LEFT,
       lineNum: new LineNum({ idx: currDeletedIdx }),
-      text: deletedLine,
+      rowGroup: rowGroup,
     });
     rowGroup.addDeletedRow(row);
 
     var row = new Row({
       type: Row.Type.UNCHANGED,
+      side: Row.Side.RIGHT,
       lineNum: new LineNum({ idx: currInsertedIdx }),
-      text: insertedLine,
+      rowGroup: rowGroup,
     });
     rowGroup.addInsertedRow(row);
   }
