@@ -151,10 +151,20 @@ tr.inline-comments .line-comments.show-form .show-inline-comment-form {
   color: rgba(0, 0, 0, 0.3);
 }
 
-#files .file-diff-line,
+#files .gi,
+#files .gd,
 #files .diff-line-code {
+  color: inherit;
+}
+
+.hljs {
+  padding: 0;
+}
+
+#files .file-diff-line,
+#files pre {
   font-family: Menlo, Consolas, Monaco, monospace;
-  font-size: 10px;
+  font-size: 11px;
 }
 
 .file-diff.unselectableDeletion .sideBySide .inline-comments,

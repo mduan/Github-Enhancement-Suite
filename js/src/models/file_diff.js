@@ -28,6 +28,7 @@ var FileDiff = Backbone.Model.extend({
     this.propagateChange('rowGroups');
   },
 
+  /*
   fetchFile: function() {
     if (this.has('filePromise')) {
       return this.get('filePromise');
@@ -43,6 +44,82 @@ var FileDiff = Backbone.Model.extend({
     }.bind(this));
     this.set('filePromise', filePromise, { silent: true });
     return filePromise;
+  },
+  */
+
+  fetchFile: function() {
+    if (this.has('insertedLines')) {
+      var deferred = $.Deferred();
+      deferred.resolve([this.get('deletedLines'), this.get('insertedLines')]);
+      return deferred.promise();
+    }
+
+    var promise = $.get(this.get('rawUrl')).then(function(insertedData) {
+      var insLines = insertedData.split(/\r?\n/);
+
+      var deletedData = '';
+      var currLineIdx = 0;
+      // TODO(mack): Use .each()
+      this.get('rowGroups').each(function(rowGroup) {
+        var deletedRows = rowGroup.get('deletedRows');
+        var insertedRows = rowGroup.get('insertedRows');
+        var insertedRange = insertedRows.getRange();
+
+        for (currLineIdx; currLineIdx < insertedRange[0]; ++currLineIdx) {
+          deletedData += insLines[currLineIdx] + '\n';
+        }
+
+        deletedRows.each(function(row) {
+          deletedData += row.get('text') + '\n';
+        });
+        var lineRangeSize = insertedRange[1] - insertedRange[0];
+        currLineIdx += lineRangeSize;
+      });
+
+      for (currLineIdx; currLineIdx < insLines.length; ++currLineIdx) {
+        deletedData += insLines[currLineIdx] + '\n';
+      }
+      if (deletedData) {
+        deletedData = deletedData.substring(0, deletedData.length - 1);
+      }
+
+      //var extension = this.get('extension');
+      var deletedData = $('<div/>').html(deletedData).text();
+      var deletedData = hljs.highlightAuto(deletedData).value;
+      var insertedData = $('<div/>').html(insertedData).text();
+      var insertedData = hljs.highlightAuto(insertedData).value;
+
+      deletedData = deletedData.replace(/\r?\n/, '\n ');
+      var deletedLines = deletedData.split(/\r?\n/);
+      var insertedLines = insertedData.split(/\r?\n/);
+      // TODO(mack): Clean this up
+      for (var idx = 0; idx < insertedLines.length; ++idx) {
+        insertedLines[idx] = ' ' + insertedLines[idx];
+      }
+
+      this.set('deletedLines', deletedLines, { silent: true });
+      this.set('insertedLines', insertedLines, { silent: true });
+      // TODO(mack): The raw text that's returned sometimes includes an extra
+      // empty line. To know if it includes the extra line, we'd need to view
+      // the non-raw view of the file, and see what the last row is.
+      this.set('numLines', insertedLines.length, { silent: true });
+
+      this.get('rowGroups').each(function(rowGroup) {
+        rowGroup.get('deletedRows').each(function(row) {
+          row.set('text', deletedLines[row.getLineIdx()], { silent: true });
+          //if (row.get('type') === Row.Type.DELETED) {
+          //  console.log('deleted:"' +  deletedLine + '"');
+          //}
+        });
+        rowGroup.get('insertedRows').each(function(row) {
+          row.set('text', insertedLines[row.getLineIdx()], { silent: true });
+        });
+      });
+
+      return [deletedLines, insertedLines];
+    }.bind(this));
+
+    return promise;
   },
 
   // Returns whether our final row group includes up to the last line of
@@ -108,9 +185,11 @@ FileDiff.createFileDiff = function($file, diffViewer) {
     + commitHash + '/'
     + filePath);
 
+  var extension = filePath.substring(filePath.lastIndexOf('.') + 1);
   var fileDiff = new FileDiff({
     id: $file.attr('id'),
     rawUrl: rawUrl,
+    extension: extension,
   });
 
   var currGroup;
@@ -128,14 +207,21 @@ FileDiff.createFileDiff = function($file, diffViewer) {
         return;
       }
 
+      var $cells = $row.find('td');
+      var codeData = parseCodeCell($cells.eq(2));
+      var rowText = codeData.text;
       if ($row.hasClass('gd')) {
         var rowStr = 'deleted';
         var rowType = Row.Type.DELETED;
         var groupType = RowGroup.Type.CHANGED;
+        assert(rowText[0] === '-');
+        rowText = ' ' + rowText.substring(1);
       } else if ($row.hasClass('gi')) {
         var rowStr = 'inserted';
         var rowType = Row.Type.INSERTED;
         var groupType = RowGroup.Type.CHANGED;
+        assert(rowText[0] === '+');
+        rowText = ' ' + rowText.substring(1);
       } else {
         var rowStr = 'unchanged';
         var rowType = Row.Type.UNCHANGED;
@@ -147,9 +233,6 @@ FileDiff.createFileDiff = function($file, diffViewer) {
         fileDiff.get('rowGroups').add(currGroup);
       }
 
-      var $cells = $row.find('td');
-      var codeData = parseCodeCell($cells.eq(2));
-      var rowText = codeData.text;
       var commentUrl = codeData.commentUrl;
       // Internal concept that is used to associate a comment with a row
       var rowPosition = $row.data('position');

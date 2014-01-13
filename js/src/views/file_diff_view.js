@@ -101,9 +101,14 @@ var FileDiffView = React.createClass({
     var numLines = this.props.diffViewer.get('numLinesToShow');
     // TODO(mack): See if there's a less hacky way to get the real target.
     var $target = $('[data-reactid="' + currTargetId + '"]');
-    this.props.fileDiff.fetchFile().then(function(fileLines) {
+    //this.props.fileDiff.fetchHighlightFile().then(function(fileLines) {
+    //  console.log('deleted:\n', fileLines);
+    //});
+    this.props.fileDiff.fetchFile().then(function(lines) {
+      var deletedLines = lines[0];
+      var insertedLines = lines[1];
       var rangeInfo = RowGroup.getMissingRangeInfo(
-        prevRowGroup, nextRowGroup, fileLines.length);
+        prevRowGroup, nextRowGroup, insertedLines.length);
 
       if (!rangeInfo.length) {
         // Only clicking show lines at end of a file can result in a missing
@@ -139,7 +144,7 @@ var FileDiffView = React.createClass({
         };
       }
 
-      var rowGroup = RowGroup.createRowGroup(fileLines, showRange);
+      var rowGroup = RowGroup.createRowGroup(lines, showRange);
       this.props.fileDiff.get('rowGroups').insertAfter(prevRowGroup, rowGroup);
 
     }.bind(this));

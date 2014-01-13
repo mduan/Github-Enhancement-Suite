@@ -19,10 +19,13 @@ $(document).ready(function() {
       }
 
       var fileDiff = FileDiff.createFileDiff($file, diffViewer);
-      var fileDiffView = <FileDiffView fileDiff={fileDiff} diffViewer={diffViewer} />;
+      fileDiff.fetchFile().then(function() {
+        var fileDiffView = <FileDiffView fileDiff={fileDiff} diffViewer={diffViewer} />;
 
-      $fileDiff.empty();
-      React.renderComponent(fileDiffView, $fileDiff.get(0));
+        $fileDiff.empty();
+        $fileDiff.addClass('hljs');
+        React.renderComponent(fileDiffView, $fileDiff.get(0));
+      });
     });
   }
 
@@ -36,9 +39,14 @@ $(document).ready(function() {
   function renderPage(diffViewer) {
     renderFileDiffs(diffViewer);
     renderCheckboxes(diffViewer);
-    if (diffViewer.get('sideBySide')) {
-      $('body').addClass('sideBySide');
-    }
+    diffViewer.on('change:sideBySide', function() {
+      if (this.get('sideBySide')) {
+        $('body').addClass('sideBySide');
+      } else {
+        $('body').removeClass('sideBySide');
+      }
+    });
+    diffViewer.trigger('change:sideBySide');
   }
 
   getSettings(['sideBySide', 'wordWrap']).then(function(settings) {

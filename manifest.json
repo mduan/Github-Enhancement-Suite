@@ -18,7 +18,7 @@
   },
   "content_scripts": [{
     "css": [
-      "ext/highlight/styles/github.css",
+      "ext/highlight/styles/solarized_light.css",
       "css/styles.css"
     ],
     "matches": [

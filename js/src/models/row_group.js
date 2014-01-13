@@ -202,30 +202,35 @@ RowGroup.getMissingRangeInfo = function(prevRowGroup, nextRowGroup, numLines) {
   };
 };
 
-RowGroup.createRowGroup = function(fileLines, showRange) {
+RowGroup.createRowGroup = function(lines, showRange) {
+  var deletedLines = lines[0];
+  var insertedLines = lines[1];
   var rowGroup = new RowGroup({
     type: RowGroup.Type.UNCHANGED,
   });
   for (var i = 0; i < showRange.length; ++i) {
     var currDeletedIdx = showRange.deletedIdx + i;
     var currInsertedIdx = showRange.insertedIdx + i;
-    var fileLine = fileLines[currInsertedIdx];
-    fileLine = $('<div/>').text(' ' + fileLine).html();
-    fileLine = fileLine
-      .replace(/ /g, '&nbsp;')
-      .replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;');
+    var deletedLine = deletedLines[currDeletedIdx];
+    var insertedLine = insertedLines[currInsertedIdx];
+
+    //fileLine = $('<div/>').text(' ' + fileLine).html();
+    //fileLine = fileLine
+    //  //.replace(/ /g, '&nbsp;')
+    //  //.replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;');
+    //  .replace(/\t/g, '        ');
 
     var row = new Row({
       type: Row.Type.UNCHANGED,
       lineNum: new LineNum({ idx: currDeletedIdx }),
-      text: fileLine,
+      text: deletedLine,
     });
     rowGroup.addDeletedRow(row);
 
     var row = new Row({
       type: Row.Type.UNCHANGED,
       lineNum: new LineNum({ idx: currInsertedIdx }),
-      text: fileLine,
+      text: insertedLine,
     });
     rowGroup.addInsertedRow(row);
   }
