@@ -1,6 +1,6 @@
 function isFileDiffUrl(url) {
   return (
-    url.match(/https:\/\/github.com\/.*\/pull\/.*/) ||
+    url.match(/https:\/\/github.com\/.*\/pull\/.*\/files/) ||
     url.match(/https:\/\/github.com\/.*\/commit\/.*/) ||
     url.match(/https:\/\/github.com\/.*\/compare\/.*/)
   );

@@ -22,7 +22,7 @@
       "css/styles.css"
     ],
     "matches": [
-      "https://github.com/*/pull/*",
+      "https://github.com/*/pull/*/files",
       "https://github.com/*/commit/*",
       "https://github.com/*/compare/*"
     ],
