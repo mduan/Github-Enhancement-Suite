@@ -24,16 +24,22 @@ var CheckboxesView = React.createClass({
   },
 
   clickSideBySideCheckbox: function(evt) {
-    var sideBySide = !this.props.diffViewer.get('sideBySide');
-    this.props.diffViewer.set('sideBySide', sideBySide);
+    var checked = !this.props.diffViewer.get('sideBySide');
+    this.props.diffViewer.set('sideBySide', checked);
     // TODO(mack): Do this in the model
-    saveSetting('sideBySide', sideBySide);
+    saveSetting('sideBySide', checked);
   },
 
   clickWordWrapCheckbox: function(evt) {
-    var wordWrap = !this.props.diffViewer.get('wordWrap');
-    this.props.diffViewer.set('wordWrap', wordWrap);
-    saveSetting('wordWrap', wordWrap);
+    var checked = !this.props.diffViewer.get('wordWrap');
+    this.props.diffViewer.set('wordWrap', checked);
+    saveSetting('wordWrap', checked);
+  },
+
+  clickSyntaxHighlightCheckbox: function(evt) {
+    var checked = !this.props.diffViewer.get('syntaxHighlight');
+    this.props.diffViewer.set('syntaxHighlight', checked);
+    saveSetting('syntaxHighlight', checked);
   },
 
   render: function() {
@@ -41,6 +47,7 @@ var CheckboxesView = React.createClass({
       <span className="settingCheckboxes">
         {this.renderSideBySideCheckbox()}
         {this.renderWordWrapCheckbox()}
+        {this.renderSyntaxHighlightCheckbox()}
       </span>
     );
   },
@@ -53,24 +60,12 @@ var CheckboxesView = React.createClass({
       $('#files').removeClass('sideBySide');
     }
 
-    var attributes = {
+    return this.renderCheckbox({
       onClick: this.clickSideBySideCheckbox,
-      type: 'checkbox',
       id: 'sideBySide',
-    };
-    if (sideBySide) {
-      attributes.checked = 'checked';
-    }
-
-    return (
-      <span>
-        {React.DOM.input(attributes)}
-        <label id="sideBySideLabel" htmlFor="sideBySide">
-          <span className="mini-icon mini-icon-public-mirror"></span>
-          side by side
-        </label>
-      </span>
-    );
+      checked: sideBySide,
+      text: 'side by side',
+    });
   },
 
   renderWordWrapCheckbox: function() {
@@ -81,21 +76,45 @@ var CheckboxesView = React.createClass({
       $('#files').removeClass('wordWrap');
     }
 
-    var attributes = {
+    return this.renderCheckbox({
       onClick: this.clickWordWrapCheckbox,
-      type: 'checkbox',
       id: 'wordWrap',
+      checked: wordWrap,
+      text: 'word wrap',
+    });
+  },
+
+  renderSyntaxHighlightCheckbox: function() {
+    var syntaxHighlight = this.props.diffViewer.get('syntaxHighlight');;
+    if (syntaxHighlight) {
+      $('#files').addClass('hljs');
+    } else {
+      $('#files').removeClass('hljs');
+    }
+
+    return this.renderCheckbox({
+      onClick: this.clickSyntaxHighlightCheckbox,
+      id: 'syntaxHighlight',
+      checked: syntaxHighlight,
+      text: 'syntax highlighting',
+    });
+  },
+
+  renderCheckbox: function(params) {
+    var attributes = {
+      onClick: params.onClick,
+      type: 'checkbox',
+      id: params.id,
     };
-    if (wordWrap) {
+    if (params.checked) {
       attributes.checked = 'checked';
     }
 
     return (
       <span>
         {React.DOM.input(attributes)}
-        <label id="wordWrapLabel" htmlFor="wordWrap">
-          <span className="mini-icon mini-icon-reorder"></span>
-          word wrap
+        <label id={params.id + 'Label'} htmlFor={params.id}>
+          {params.text}
         </label>
       </span>
     );

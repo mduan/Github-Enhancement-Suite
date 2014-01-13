@@ -49,14 +49,15 @@ $(document).ready(function() {
     diffViewer.trigger('change:sideBySide');
   }
 
-  getSettings(['sideBySide', 'wordWrap']).then(function(settings) {
+  getSettings(['sideBySide', 'wordWrap', 'syntaxHighlight']).then(function(settings) {
     var wordWrap = 'wordWrap' in settings ? settings.wordWrap : true;
     var sideBySide = 'sideBySide' in settings ? settings.sideBySide : true;
+    var syntaxHighlight = 'syntaxHighlight' in settings ? settings.syntaxHighlight : true;
     var urlMatches = location.href.match('^.*?://github.com/(.+?)/(.+?)/');
     var diffViewer = new DiffViewer({
       sideBySide: sideBySide,
       wordWrap: wordWrap,
-      syntaxHighlight: true,
+      syntaxHighlight: syntaxHighlight,
       numLinesToShow: 20,
       author: urlMatches[1],
       repo: urlMatches[2],

@@ -31,13 +31,11 @@ body.sideBySide .repository-with-sidebar .repository-content {
   margin-left: 10px;
 }
 
-.settingCheckboxes #wordWrap,
-.settingCheckboxes #sideBySide {
+.settingCheckboxes input[type="checkbox"] {
   margin-left: 15px;
 }
 
-.settingCheckboxes #wordWrapLabel,
-.settingCheckboxes #sideBySideLabel {
+.settingCheckboxes input[type="checkbox"] + label {
   margin-left: 5px;
 }
 
