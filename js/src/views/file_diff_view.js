@@ -9,6 +9,7 @@ var Row = Models.Row;
 var Comment = Models.Comment;
 
 var assert = Globals.Utils.assert;
+var WorkQueue = Globals.Utils.WorkQueue;
 
 // Should add to prototype of all React views
 function keyComponentArr(arr) {
@@ -208,15 +209,20 @@ var FileDiffView = React.createClass({
   },
 
   reRender: function() {
-    // TODO(mack): Properly have the view update rather than using this hack.
-    // It's necessary for now to get around bug (likely w/ react.js) where
-    // when switching from side-by-side to inline, the text portion of some
-    // of the comments disappear.
     var $parent = $(this.getDOMNode()).parent();
-    React.unmountComponentAtNode($parent.get(0));
-    var fileDiffView = <FileDiffView fileDiff={this.props.fileDiff} diffViewer={this.props.diffViewer} />;
-    React.renderComponent(fileDiffView, $parent.get(0));
-    //this.setState({ random: Math.random() });
+    WorkQueue.add(function() {
+      React.unmountComponentAtNode($parent.get(0));
+      var fileDiffView = (
+        <FileDiffView
+            fileDiff={this.props.fileDiff}
+            diffViewer={this.props.diffViewer} />
+      );
+      // TODO(mack): Properly have the view update rather than using this hack.
+      // It's necessary for now to get around bug (likely w/ react.js) where
+      // when switching from side-by-side to inline, the text portion of some
+      // of the comments disappear.
+      React.renderComponent(fileDiffView, $parent.get(0));
+    }, this);
   },
 
   render: function() {

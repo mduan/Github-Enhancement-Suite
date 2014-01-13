@@ -6,6 +6,7 @@ $(document).ready(function() {
   var FileDiffView = Globals.Views.FileDiffView;
   var CheckboxesView = Globals.Views.CheckboxesView;
   var getSettings = Globals.Utils.getSettings;
+  var WorkQueue = Globals.Utils.WorkQueue;
 
   function renderFileDiffs(diffViewer) {
     $('.file').each(function() {
@@ -20,11 +21,13 @@ $(document).ready(function() {
 
       var fileDiff = FileDiff.createFileDiff($file, diffViewer);
       fileDiff.fetchFile().then(function() {
-        var fileDiffView = <FileDiffView fileDiff={fileDiff} diffViewer={diffViewer} />;
+        WorkQueue.add(function() {
+          var fileDiffView = <FileDiffView fileDiff={fileDiff} diffViewer={diffViewer} />;
 
-        $fileDiff.empty();
-        $fileDiff.addClass('hljs');
-        React.renderComponent(fileDiffView, $fileDiff.get(0));
+          $fileDiff.empty();
+          $fileDiff.addClass('hljs');
+          React.renderComponent(fileDiffView, $fileDiff.get(0));
+        });
       });
     });
   }
